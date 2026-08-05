@@ -3654,9 +3654,16 @@
                     dy += targetVy * travelTime;
                 }
                 
-                var angle = -Math.atan2(dy, dx) * 180 / Math.PI;
+                // Correction du bug d'angle : suppression du signe négatif comme dans bot.js
+                var angle = Math.atan2(dy, dx) * 180 / Math.PI;
                 if (angle < 0) angle += 360;
-                return angle;
+                
+                return {
+                    angle: angle,
+                    distance: distance,
+                    fire: true,
+                    thrust: distance > 120 // Reste à bonne distance comme dans bot.js
+                };
             }
             return null;
         }
@@ -3667,10 +3674,16 @@
             if (typeof data === 'string' && /^\d+$/.test(data)) {
                 let val = parseInt(data);
                 if (window.modSettings && window.modSettings.aimbotEnabled) {
-                    let targetAngle = getAimbotTargetAngle();
-                    if (targetAngle !== null) {
-                        let flags = val & ~4095; 
-                        val = flags + Math.round(targetAngle);
+                    let targetInfo = getAimbotTargetAngle();
+                    if (targetInfo !== null) {
+                        let flags = val & ~4095; // Supprime l'angle d'origine
+                        
+                        // Application des actions automatiques du bot
+                        if (targetInfo.fire) flags |= 8192;
+                        if (targetInfo.thrust) flags |= 4096;
+                        else flags &= ~4096; // Ne pas avancer si on est trop près
+
+                        val = flags + Math.round(targetInfo.angle);
                         data = val.toString();
                     }
                 }
