@@ -3102,15 +3102,8 @@
     window.modSettings = {
         fovEnabled: true,
         noobPassEnabled: true,
-        fastRespawnEnabled: false,
-        aimbotEnabled: false,
-        aimPredictEnabled: false,
-        aimPredictMult: 1.0,
-        aimbotAlwaysOn: true,
         gifMacroEnabled: false,
-        lastTypedEmote: 'X',
-        fixedPos1Emote: 'L',
-        networkLoggingEnabled: false
+        aimbotEnabled: false
     };
 
     var originalRespawnDelay = null;
@@ -3137,306 +3130,7 @@
         }
     }, 200);
 
-    /* ===== NETWORK WS LOGGER & DECODER ===== */
-    window.wsLogs = [];
-    var maxLogs = 15000;
-
-    function bufferToHexArray(buffer) {
-        var view = new DataView(buffer);
-        var hex = [];
-        for (var i = 0; i < buffer.byteLength; i++) {
-            var val = view.getUint8(i).toString(16);
-            if (val.length === 1) val = '0' + val;
-            hex.push(val.toUpperCase());
-        }
-        return hex;
-    }
-
-    function decodePayload(data, direction) {
-        try {
-            if (typeof data === 'string') {
-                return { type: 'JSON', parsed: JSON.parse(data) };
-            }
-
-            if (data instanceof ArrayBuffer || data.buffer instanceof ArrayBuffer) {
-                var buffer = data.buffer || data;
-                var view = new DataView(buffer);
-                if (buffer.byteLength === 0) return { type: 'EMPTY_BINARY' };
-
-                var opcode = view.getUint8(0);
-                var decoded = { 
-                    opcode: opcode, 
-                    rawHex: bufferToHexArray(buffer),
-                    byteLength: buffer.byteLength 
-                };
-
-                if (direction === 'OUT') {
-                    // Les paquets de controle du joueur vers le serveur
-                    if (buffer.byteLength >= 5) {
-                        decoded.type = 'PLAYER_INPUT';
-                        decoded.details = {
-                            // Exemple: boutons, angle, actions binaires
-                            byte1: view.getUint8(1),
-                            byte2: view.getUint8(2),
-                            byte3: view.getUint8(3),
-                            byte4: view.getUint8(4)
-                        };
-                    } else {
-                        decoded.type = 'CLIENT_BINARY_SHORT';
-                    }
-                    return { type: 'BINARY', parsed: decoded };
-                }
-
-                // Opcodes Serveur -> Client (IN)
-                if (opcode === 0 && buffer.byteLength >= 36) {
-                    decoded.type = 'PLAYER_STATE';
-                    decoded.details = {
-                        id: view.getUint8(1),
-                        status: view.getUint8(2),
-                        x: view.getFloat32(16, true),
-                        y: view.getFloat32(20, true),
-                        vx: view.getFloat32(24, true),
-                        vy: view.getFloat32(28, true),
-                        angle: view.getFloat32(32, true)
-                    };
-                } else if (opcode === 100 && buffer.byteLength >= 40) {
-                    decoded.type = 'LASERS_SPAWN';
-                    decoded.details = {
-                        shooterId: view.getUint8(1),
-                        laserCount: (buffer.byteLength - 8) / 32
-                    };
-                } else if (opcode === 111 && buffer.byteLength >= 24) {
-                    decoded.type = 'ASTEROID_STATE';
-                    decoded.details = {
-                        id: view.getUint16(2, true),
-                        size: view.getUint8(1),
-                        x: view.getFloat32(8, true),
-                        y: view.getFloat32(12, true),
-                        vx: view.getFloat32(16, true),
-                        vy: view.getFloat32(20, true)
-                    };
-                } else if (opcode === 200) {
-                    decoded.type = 'SCOREBOARD_RADAR';
-                } else if (opcode === 220 && buffer.byteLength >= 38) {
-                    decoded.type = 'ALIEN_STATE';
-                    decoded.details = {
-                        id: view.getUint16(2, true),
-                        level: view.getUint8(5),
-                        x: view.getFloat32(10, true),
-                        y: view.getFloat32(14, true),
-                        vx: view.getFloat32(18, true),
-                        vy: view.getFloat32(22, true)
-                    };
-                } else {
-                    decoded.type = 'SERVER_BINARY_OTHER';
-                }
-
-                return { type: 'BINARY', parsed: decoded };
-            }
-        } catch (e) {
-            return { type: 'DECODE_ERROR', error: e.message };
-        }
-        return { type: 'UNSUPPORTED' };
-    }
-
-    var OriginalWebSocket = window.WebSocket;
-    window.WebSocket = function(url, protocols) {
-        var ws = new OriginalWebSocket(url, protocols);
-        
-        var originalSend = ws.send;
-        ws.send = function(data) {
-            if (window.modSettings && window.modSettings.networkLoggingEnabled) {
-                var logEntry = {
-                    direction: 'OUT',
-                    timestamp: Date.now(),
-                    decoded: null
-                };
-
-                if (data instanceof Blob) {
-                    var reader = new FileReader();
-                    reader.onload = function() {
-                        logEntry.decoded = decodePayload(reader.result, 'OUT');
-                    };
-                    reader.readAsArrayBuffer(data);
-                } else {
-                    logEntry.decoded = decodePayload(data, 'OUT');
-                }
-
-                if (window.wsLogs.length < maxLogs) window.wsLogs.push(logEntry);
-            }
-            return originalSend.apply(this, arguments);
-        };
-
-        ws.addEventListener('message', function(event) {
-            if (window.modSettings && window.modSettings.networkLoggingEnabled) {
-                var data = event.data;
-                var logEntry = {
-                    direction: 'IN',
-                    timestamp: Date.now(),
-                    decoded: null
-                };
-
-                if (data instanceof Blob) {
-                    var reader = new FileReader();
-                    reader.onload = function() {
-                        logEntry.decoded = decodePayload(reader.result, 'IN');
-                    };
-                    reader.readAsArrayBuffer(data);
-                } else {
-                    logEntry.decoded = decodePayload(data, 'IN');
-                }
-
-                if (window.wsLogs.length < maxLogs) window.wsLogs.push(logEntry);
-            }
-        });
-
-        return ws;
-    };
-    Object.assign(window.WebSocket, OriginalWebSocket);
-    window.WebSocket.prototype = OriginalWebSocket.prototype;
-
-    window.exportNetworkLogs = function() {
-        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.wsLogs, null, 2));
-        var downloadAnchor = document.createElement('a');
-        downloadAnchor.setAttribute("href", dataStr);
-        downloadAnchor.setAttribute("download", 'starblast_ws_logs_' + Date.now() + '.json');
-        document.body.appendChild(downloadAnchor);
-        downloadAnchor.click();
-        downloadAnchor.remove();
-    };
-
-    /* ===== HOOK AIMBOT & AIM-PREDICT (Compatibilite Userscripts & Injectors) ===== */
-    var isMouseRightDown = false;
-    var isShiftDown = false;
-
-    window.addEventListener('mousedown', function(e) {
-        if (e.button === 2) isMouseRightDown = true;
-    }, true);
-    window.addEventListener('mouseup', function(e) {
-        if (e.button === 2) isMouseRightDown = false;
-    }, true);
-    window.addEventListener('contextmenu', function(e) {
-        if (window.modSettings && window.modSettings.aimbotEnabled) e.preventDefault();
-    }, true);
-    window.addEventListener('keydown', function(e) {
-        if (e.key === 'Shift') isShiftDown = true;
-    }, true);
-    window.addEventListener('keyup', function(e) {
-        if (e.key === 'Shift') isShiftDown = false;
-    }, true);
-
-    function computeAimAngle(controlObj) {
-        if (!window.modSettings || !window.modSettings.aimbotEnabled) return null;
-        
-        var shouldAim = window.modSettings.aimbotAlwaysOn || isMouseRightDown || isShiftDown;
-        if (!shouldAim) return null;
-
-        var game = (controlObj && controlObj.Ol111) || window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
-        var playerShip = (controlObj && controlObj.ship) || (game && game.I0lO1);
-        if (!game || !playerShip || !playerShip.status || !playerShip.status.alive) return null;
-
-        var playerStatus = playerShip.status;
-        var ships = (game.IO1OO && game.IO1OO.lOII1 && game.IO1OO.lOII1.ships) ? game.IO1OO.lOII1.ships : [];
-        if (!ships || !ships.length) return null;
-
-        var closestEnemy = null;
-        var minDistance = Infinity;
-
-        for (var i = 0; i < ships.length; i++) {
-            var sObj = ships[i];
-            if (!sObj) continue;
-            var st = (sObj.lOOlI && sObj.lOOlI.status) ? sObj.lOOlI.status : sObj.status;
-            if (!st) continue;
-
-            if (st.id === playerStatus.id || !st.alive || st.invulnerable) continue;
-            if (st.friendly || (playerStatus.friendly && st.friendly === playerStatus.friendly)) continue;
-            if (playerStatus.team && st.team && playerStatus.team === st.team) continue;
-
-            var dx = st.x - playerStatus.x;
-            var dy = st.y - playerStatus.y;
-
-            if (game.OI0ll) {
-                if (dx > game.OI0ll) dx -= game.size;
-                if (dx < -game.OI0ll) dx += game.size;
-                if (dy > game.OI0ll) dy -= game.size;
-                if (dy < -game.OI0ll) dy += game.size;
-            }
-
-            var dist = Math.sqrt(dx * dx + dy * dy);
-            if (dist < minDistance) {
-                minDistance = dist;
-                closestEnemy = { target: st, dx: dx, dy: dy, dist: dist, vx: st.O0l1l || 0, vy: st.lIOIl || 0 };
-            }
-        }
-
-        if (!closestEnemy) return null;
-
-        var targetX = closestEnemy.dx;
-        var targetY = closestEnemy.dy;
-
-        if (window.modSettings.aimPredictEnabled) {
-            var laserSpeed = 110;
-            if (playerShip.instance && playerShip.instance.lasers && playerShip.instance.lasers[0]) {
-                laserSpeed = playerShip.instance.lasers[0].speed || 110;
-            }
-            var timeToHit = (closestEnemy.dist / laserSpeed);
-            var predictMult = parseFloat(window.modSettings.aimPredictMult) || 1.0;
-            
-            var pVx = playerStatus.O0l1l || 0;
-            var pVy = playerStatus.lIOIl || 0;
-            
-            targetX += (closestEnemy.vx - pVx) * timeToHit * predictMult;
-            targetY += (closestEnemy.vy - pVy) * timeToHit * predictMult;
-        }
-
-        var angleRad = -Math.atan2(targetY, targetX);
-        var angleDeg = Math.round((angleRad / (Math.PI / 180) + 360) % 360);
-        while (angleDeg < 0) angleDeg += 360;
-
-        if (game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.cursor) {
-            var deg2rad = Math.PI / 180;
-            var screenX = 0.5 * game.display.width + 0.25 * game.display.height * Math.cos(-angleDeg * deg2rad);
-            var screenY = game.display.height * (0.5 + 0.25 * Math.sin(-angleDeg * deg2rad));
-            game.display.screen.Il10l.cursor.set(screenX, screenY);
-        }
-
-        return angleDeg;
-    }
-
-    function hookStarblastControl() {
-        if (typeof O0OlI === 'undefined' || O0OlI._aimbotHooked) return;
-        O0OlI._aimbotHooked = true;
-
-        var origI0I00 = O0OlI.prototype.I0I00;
-        O0OlI.prototype.I0I00 = function() {
-            var ret = origI0I00.apply(this, arguments);
-            var targetAngle = computeAimAngle(this);
-            if (targetAngle !== null) {
-                this.angle = targetAngle;
-                if (this.ship && this.ship.l11II) {
-                    this.ship.l11II.angle = targetAngle;
-                    this.ship.O10OI();
-                }
-            }
-            return ret;
-        };
-
-        var origMouseMove = O0OlI.prototype.mouseMove;
-        O0OlI.prototype.mouseMove = function(t, e, i) {
-            var ret = origMouseMove.apply(this, arguments);
-            var targetAngle = computeAimAngle(this);
-            if (targetAngle !== null) {
-                this.angle = targetAngle;
-                if (this.ship && this.ship.l11II) {
-                    this.ship.l11II.angle = targetAngle;
-                    this.ship.O10OI();
-                }
-            }
-            return ret;
-        };
-    }
-    setInterval(hookStarblastControl, 300);
-
+    // Zoom fluide molette (FOV)
     window.customZoomMultiplier = 1.0;
     var targetZoomMultiplier = 1.0;
     
@@ -3656,14 +3350,10 @@
                 "input:checked + .slider:before { transform: translateX(18px); }" +
                 ".toolbox-select { width: 100%; background: rgba(10, 25, 45, 0.6); border: 1px solid rgba(0, 191, 255, 0.25); border-radius: 6px; color: white; padding: 6px 10px; font-size: 12px; outline: none; cursor: pointer; margin-top: 4px; transition: border-color 0.2s; }" +
                 ".toolbox-select:focus { border-color: #00bfff; }" +
-                ".range-slider { -webkit-appearance: none; width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; outline: none; margin-top: 8px; }" +
-                ".range-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #00bfff; cursor: pointer; }" +
                 ".emote-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }" +
                 ".emote-btn { background: rgba(0, 191, 255, 0.12); border: 1px solid rgba(0, 191, 255, 0.3); border-radius: 8px; color: #fff; padding: 8px 4px; font-size: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; }" +
                 ".emote-btn:hover { background: rgba(0, 191, 255, 0.35); border-color: #00d2ff; transform: scale(1.05); }" +
-                ".emote-btn span { font-size: 9px; color: #00d2ff; margin-top: 2px; }" +
-                ".btn-export { width: 100%; background: #00bfff; border: none; border-radius: 8px; color: white; padding: 8px; font-weight: bold; cursor: pointer; margin-top: 8px; transition: background 0.2s; }" +
-                ".btn-export:hover { background: #0088cc; }";
+                ".emote-btn span { font-size: 9px; color: #00d2ff; margin-top: 2px; }";
             document.head.appendChild(style);
 
             var div = document.createElement('div');
@@ -3674,50 +3364,6 @@
                 '    <span class="close-btn" id="close-toolbox">&times;</span>' +
                 '</div>' +
                 '<div class="toolbox-body">' +
-                '    <div class="toolbox-section">' +
-                '        <div class="section-title">Combat & Aim Cheats</div>' +
-                '        <div class="setting-row">' +
-                '            <div class="setting-info">' +
-                '                <span class="setting-label">AimBot (Auto-Lock Cible)</span>' +
-                '                <span class="setting-desc">Verrouille la cible automatiquement</span>' +
-                '            </div>' +
-                '            <label class="switch">' +
-                '                <input type="checkbox" id="cheat-aimbot">' +
-                '                <span class="slider"></span>' +
-                '            </label>' +
-                '        </div>' +
-                '        <div class="setting-row">' +
-                '            <div class="setting-info">' +
-                '                <span class="setting-label">Aim-Predict (Visee Anticipee)</span>' +
-                '                <span class="setting-desc">Anticipe la trajectoire selon les lasers</span>' +
-                '            </div>' +
-                '            <label class="switch">' +
-                '                <input type="checkbox" id="cheat-aimpredict">' +
-                '                <span class="slider"></span>' +
-                '            </label>' +
-                '        </div>' +
-                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start; margin-top: 4px;">' +
-                '            <div style="display: flex; justify-content: space-between; width: 100%;">' +
-                '                <span class="setting-label">Aim Predict Multiplier</span>' +
-                '                <span class="setting-label" id="predict-mult-val" style="color: #00bfff;">1.0x</span>' +
-                '            </div>' +
-                '            <input type="range" min="0" max="3" step="0.1" value="1.0" class="range-slider" id="cheat-aimpredict-mult">' +
-                '        </div>' +
-                '    </div>' +
-                '    <div class="toolbox-section">' +
-                '        <div class="section-title">Network Packet Logger</div>' +
-                '        <div class="setting-row">' +
-                '            <div class="setting-info">' +
-                '                <span class="setting-label">Enregistrer WebSocket</span>' +
-                '                <span class="setting-desc">Capture les paquets entrants & sortants</span>' +
-                '            </div>' +
-                '            <label class="switch">' +
-                '                <input type="checkbox" id="net-log-toggle">' +
-                '                <span class="slider"></span>' +
-                '            </label>' +
-                '        </div>' +
-                '        <button class="btn-export" onclick="window.exportNetworkLogs()">Exporter logs .JSON</button>' +
-                '    </div>' +
                 '    <div class="toolbox-section">' +
                 '        <div class="section-title">Cheats & Modifications</div>' +
                 '        <div class="setting-row">' +
@@ -3747,6 +3393,16 @@
                 '            </div>' +
                 '            <label class="switch">' +
                 '                <input type="checkbox" id="cheat-fastrespawn">' +
+                '                <span class="slider"></span>' +
+                '            </label>' +
+                '        </div>' +
+                '        <div class="setting-row">' +
+                '            <div class="setting-info">' +
+                '                <span class="setting-label">Aimbot (Auto-Aim)</span>' +
+                '                <span class="setting-desc">Auto-aim at the nearest enemy ship</span>' +
+                '            </div>' +
+                '            <label class="switch">' +
+                '                <input type="checkbox" id="cheat-aimbot">' +
                 '                <span class="slider"></span>' +
                 '            </label>' +
                 '        </div>' +
@@ -3816,26 +3472,6 @@
                 setTimeout(function() { panel.style.display = 'none'; }, 300);
             });
 
-            document.getElementById('cheat-aimbot').addEventListener('change', function(e) {
-                window.modSettings.aimbotEnabled = e.target.checked;
-            });
-
-            document.getElementById('cheat-aimpredict').addEventListener('change', function(e) {
-                window.modSettings.aimPredictEnabled = e.target.checked;
-            });
-
-            document.getElementById('cheat-aimpredict-mult').addEventListener('input', function(e) {
-                window.modSettings.aimPredictMult = parseFloat(e.target.value);
-                document.getElementById('predict-mult-val').textContent = e.target.value + 'x';
-            });
-
-            document.getElementById('net-log-toggle').addEventListener('change', function(e) {
-                window.modSettings.networkLoggingEnabled = e.target.checked;
-                if (e.target.checked) {
-                    window.wsLogs = [];
-                }
-            });
-
             document.getElementById('cheat-zoom').addEventListener('change', function(e) {
                 window.modSettings.fovEnabled = e.target.checked;
             });
@@ -3846,6 +3482,9 @@
 
             document.getElementById('cheat-fastrespawn').addEventListener('change', function(e) {
                 window.modSettings.fastRespawnEnabled = e.target.checked;
+            });
+            document.getElementById('cheat-aimbot').addEventListener('change', function(e) {
+                window.modSettings.aimbotEnabled = e.target.checked;
             });
 
             document.getElementById('macro-gif-toggle').addEventListener('change', function(e) {
@@ -3907,6 +3546,94 @@
                 panel.classList.add('visible');
             }
         }, true);
+
+        // --- AIMBOT LOGIC & WEBSOCKET INTERCEPTION ---
+        function getAimbotTargetAngle() {
+            var game = window.gameInstance;
+            if (!game || !game.display || !game.display.screen) return null;
+            
+            var screen = game.display.screen;
+            var myShip = screen.ship;
+            var world = screen.lOII1;
+            if (!myShip || !world || !world.ships || !myShip.status) return null;
+            
+            var myX = myShip.status.x;
+            var myY = myShip.status.y;
+            
+            var closestEnemy = null;
+            var minDist = Infinity;
+            var mapSize = 800;
+            
+            if (game.mode && game.mode.options) {
+                mapSize = (game.mode.options.map_size * 10) || 800;
+            }
+            
+            for (var i = 0; i < world.ships.length; i++) {
+                var ship = world.ships[i];
+                if (!ship || ship === myShip || !ship.status || !ship.status.alive) continue;
+                
+                // Ignore teammate in team mode
+                if (myShip.status.team !== undefined && ship.status.team === myShip.status.team) continue;
+                
+                var dx = ship.status.x - myX;
+                var dy = ship.status.y - myY;
+                
+                dx = ((dx % mapSize) + mapSize) % mapSize;
+                if (dx > mapSize / 2) dx -= mapSize;
+                dy = ((dy % mapSize) + mapSize) % mapSize;
+                if (dy > mapSize / 2) dy -= mapSize;
+                
+                var dist = dx * dx + dy * dy;
+                if (dist < minDist) {
+                    minDist = dist;
+                    closestEnemy = ship;
+                }
+            }
+            
+            if (closestEnemy) {
+                var dx = closestEnemy.status.x - myX;
+                var dy = closestEnemy.status.y - myY;
+                
+                dx = ((dx % mapSize) + mapSize) % mapSize;
+                if (dx > mapSize / 2) dx -= mapSize;
+                dy = ((dy % mapSize) + mapSize) % mapSize;
+                if (dy > mapSize / 2) dy -= mapSize;
+                
+                var distance = Math.sqrt(dx * dx + dy * dy);
+                if (distance > 10) {
+                    var bulletSpeed = 14; 
+                    var travelTime = distance / bulletSpeed;
+                    
+                    var targetVx = closestEnemy.status.vx || 0;
+                    var targetVy = closestEnemy.status.vy || 0;
+                    
+                    dx += targetVx * travelTime;
+                    dy += targetVy * travelTime;
+                }
+                
+                var angle = Math.atan2(dy, dx) * 180 / Math.PI;
+                if (angle < 0) angle += 360;
+                return angle;
+            }
+            return null;
+        }
+
+        // Intercept client WebSocket packets
+        const originalSend = WebSocket.prototype.send;
+        WebSocket.prototype.send = function(data) {
+            if (typeof data === 'string' && /^\d+$/.test(data)) {
+                let val = parseInt(data);
+                if (window.modSettings && window.modSettings.aimbotEnabled) {
+                    let targetAngle = getAimbotTargetAngle();
+                    if (targetAngle !== null) {
+                        let flags = val & ~4095; 
+                        val = flags + Math.round(targetAngle);
+                        data = val.toString();
+                    }
+                }
+            }
+            return originalSend.apply(this, arguments);
+        };
     })();
 })();
 </script>
