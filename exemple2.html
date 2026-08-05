@@ -3137,9 +3137,9 @@
         }
     }, 200);
 
-    /* ===== HOOK PARFAIT AIMBOT & AIM-PREDICT (Starblast Trigonometry System) ===== */
-    let isMouseRightDown = false;
-    let isShiftDown = false;
+    /* ===== HOOK AIMBOT & AIM-PREDICT (Compatibilite Userscripts & Injectors) ===== */
+    var isMouseRightDown = false;
+    var isShiftDown = false;
 
     window.addEventListener('mousedown', function(e) {
         if (e.button === 2) isMouseRightDown = true;
@@ -3160,7 +3160,6 @@
     function computeAimAngle(controlObj) {
         if (!window.modSettings || !window.modSettings.aimbotEnabled) return null;
         
-        // Active si l'option est ON dans le menu, ou si Clic Droit / Maj est maintenu
         var shouldAim = window.modSettings.aimbotAlwaysOn || isMouseRightDown || isShiftDown;
         if (!shouldAim) return null;
 
@@ -3181,17 +3180,13 @@
             var st = (sObj.lOOlI && sObj.lOOlI.status) ? sObj.lOOlI.status : sObj.status;
             if (!st) continue;
 
-            // Filtrer soi-même, les morts, les invulnérables
             if (st.id === playerStatus.id || !st.alive || st.invulnerable) continue;
-            
-            // Filtrer les alliés (par statut friendly ou par numéro d'équipe team)
             if (st.friendly || (playerStatus.friendly && st.friendly === playerStatus.friendly)) continue;
             if (playerStatus.team && st.team && playerStatus.team === st.team) continue;
 
             var dx = st.x - playerStatus.x;
             var dy = st.y - playerStatus.y;
 
-            // Gestion de la carte torique (Wrap map boundary Starblast)
             if (game.OI0ll) {
                 if (dx > game.OI0ll) dx -= game.size;
                 if (dx < -game.OI0ll) dx += game.size;
@@ -3211,7 +3206,6 @@
         var targetX = closestEnemy.dx;
         var targetY = closestEnemy.dy;
 
-        // Cheat 2: Aim-Predict (Anticipation de trajectoire basée sur la vitesse du tir)
         if (window.modSettings.aimPredictEnabled) {
             var laserSpeed = 110;
             if (playerShip.instance && playerShip.instance.lasers && playerShip.instance.lasers[0]) {
@@ -3222,12 +3216,10 @@
             targetY += closestEnemy.vy * timeToHit * 60;
         }
 
-        // Conversion trigonométrique exacte de Starblast: angle = -Math.atan2(dy, dx)
         var angleRad = -Math.atan2(targetY, targetX);
         var angleDeg = Math.round((angleRad / (Math.PI / 180) + 360) % 360);
         while (angleDeg < 0) angleDeg += 360;
 
-        // Mettre à jour visuellement la position du viseur à l'écran
         if (game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.cursor) {
             var deg2rad = Math.PI / 180;
             var screenX = 0.5 * game.display.width + 0.25 * game.display.height * Math.cos(-angleDeg * deg2rad);
@@ -3238,7 +3230,6 @@
         return angleDeg;
     }
 
-    // Intercepter O0OlI (Gestionnaire des contrôles joueur) pour appliquer l'AimBot
     function hookStarblastControl() {
         if (typeof O0OlI === 'undefined' || O0OlI._aimbotHooked) return;
         O0OlI._aimbotHooked = true;
@@ -3268,7 +3259,7 @@
 
     // Zoom fluide molette (FOV)
     window.customZoomMultiplier = 1.0;
-    let targetZoomMultiplier = 1.0;
+    var targetZoomMultiplier = 1.0;
     
     window.addEventListener('wheel', function(e) {
         if (!window.modSettings || !window.modSettings.fovEnabled) return;
@@ -3306,7 +3297,6 @@
     }
     setInterval(ensureCustomEmotes, 1000);
 
-    // Declenchement manuel direct d'une emote
     window.sendEmoteDirect = function(key) {
         ensureCustomEmotes();
         var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
@@ -3316,13 +3306,12 @@
         }
     };
 
-    // Capture des emotes tapees au clavier (sans interférer avec les raccourcis système)
     window.addEventListener('keydown', function(e) {
         if (e.altKey || e.ctrlKey || e.metaKey) return;
         if (!e.key) return;
         var char = e.key.toUpperCase();
-        const vanillaKeys = ['Y', 'G', 'P', 'B', 'T', 'F', 'A', 'H', 'K', 'Q', 'X', 'L', 'O', 'E', 'M', 'N', 'D', 'S', 'J', 'U', 'I', 'V'];
-        if (vanillaKeys.includes(char)) {
+        var vanillaKeys = ['Y', 'G', 'P', 'B', 'T', 'F', 'A', 'H', 'K', 'Q', 'X', 'L', 'O', 'E', 'M', 'N', 'D', 'S', 'J', 'U', 'I', 'V'];
+        if (vanillaKeys.indexOf(char) !== -1) {
             window.modSettings.lastTypedEmote = char;
             var pos3Select = document.getElementById('macro-pos3-emote');
             if (pos3Select) pos3Select.value = char;
@@ -3331,12 +3320,12 @@
 
     /* ===== Anos Cheat & Macro Toolbox Overlay ===== */
     (function() {
-        let gifInterval = null;
-        let animationIndex = 0;
-        let frameIndex = 0;
-        let completedChain = false;
+        var gifInterval = null;
+        var animationIndex = 0;
+        var frameIndex = 0;
+        var completedChain = false;
 
-        const macroPatterns = {
+        var macroPatterns = {
             salute: [
                 ['L', 'Y', 'G', 'P', 'B'],
                 ['Y', 'G', 'P', 'B', 'L'],
@@ -3357,30 +3346,30 @@
                 ['Y', 'U', 'G', 'J', 'K']
             ],
             mode_tng: [
-                ['T', 'N', 'G', 'J', 'J'], // Pos 1-3: TOI NON GG
-                ['J', 'T', 'N', 'G', 'J'], // Pos 2-4: TOI NON GG
-                ['J', 'J', 'T', 'N', 'G'], // Pos 3-5: TOI NON GG
-                ['J', 'T', 'N', 'G', 'J']  // Pos 2-4: Aller-retour
+                ['T', 'N', 'G', 'J', 'J'],
+                ['J', 'T', 'N', 'G', 'J'],
+                ['J', 'J', 'T', 'N', 'G'],
+                ['J', 'T', 'N', 'G', 'J']
             ]
         };
 
-        const vanillaFallbacks = { J: 'G', U: 'P', I: 'X', V: 'K' };
-        const vanillaKeys = ['Y', 'G', 'P', 'B', 'T', 'F', 'A', 'H', 'K', 'Q', 'X', 'L', 'O', 'E', 'M', 'N', 'D', 'S'];
+        var vanillaFallbacks = { J: 'G', U: 'P', I: 'X', V: 'K' };
+        var vanillaKeys = ['Y', 'G', 'P', 'B', 'T', 'F', 'A', 'H', 'K', 'Q', 'X', 'L', 'O', 'E', 'M', 'N', 'D', 'S'];
 
         window.startGifMacro = function() {
             if (gifInterval) clearInterval(gifInterval);
             
-            const speedSelect = document.getElementById('macro-speed');
-            const speed = speedSelect ? (parseInt(speedSelect.value) || 500) : 500;
+            var speedSelect = document.getElementById('macro-speed');
+            var speed = speedSelect ? (parseInt(speedSelect.value) || 500) : 500;
             
-            const presetSelect = document.getElementById('macro-preset');
-            const preset = presetSelect ? presetSelect.value : 'salute';
+            var presetSelect = document.getElementById('macro-preset');
+            var preset = presetSelect ? presetSelect.value : 'salute';
             
             animationIndex = 0;
             frameIndex = 0;
             completedChain = false;
             
-            gifInterval = setInterval(() => {
+            gifInterval = setInterval(function() {
                 if (!window.modSettings || !window.modSettings.gifMacroEnabled) {
                     clearInterval(gifInterval);
                     gifInterval = null;
@@ -3390,15 +3379,15 @@
                 ensureCustomEmotes();
 
                 var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
-                const chat = game && game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.chatpanel;
+                var chat = game && game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.chatpanel;
                 if (!chat) return;
 
-                const vocabulary = chat.Ol111 && chat.Ol111.vocabulary;
+                var vocabulary = chat.Ol111 && chat.Ol111.vocabulary;
 
-                let animations;
+                var animations;
                 if (preset === 'mode_fixe') {
-                    const pos1 = window.modSettings.fixedPos1Emote || 'L';
-                    const pos3 = window.modSettings.lastTypedEmote || 'X';
+                    var pos1 = window.modSettings.fixedPos1Emote || 'L';
+                    var pos3 = window.modSettings.lastTypedEmote || 'X';
                     animations = [
                         [pos1, 'J', pos3, 'J', pos1]
                     ];
@@ -3406,7 +3395,7 @@
                     animations = macroPatterns[preset] || macroPatterns.salute;
                 }
 
-                const chainLength = chat.shown ? chat.phrase.length : 0;
+                var chainLength = chat.shown ? chat.phrase.length : 0;
 
                 if (chainLength === 0) {
                     if (completedChain) {
@@ -3418,14 +3407,14 @@
                     frameIndex = chainLength;
                 }
 
-                const sequence = animations[animationIndex % animations.length];
+                var sequence = animations[animationIndex % animations.length];
                 if (frameIndex >= sequence.length) return;
-                let key = sequence[frameIndex];
+                var key = sequence[frameIndex];
 
                 if (vocabulary && !vocabulary[key]) {
                     key = vanillaFallbacks[key] && vocabulary[vanillaFallbacks[key]]
                         ? vanillaFallbacks[key]
-                        : vanillaKeys.find(candidate => vocabulary[candidate]);
+                        : vanillaKeys.find(function(candidate) { return vocabulary[candidate]; });
                 }
                 if (!key) return;
 
@@ -3445,337 +3434,184 @@
             if (document.getElementById('anos-toolbox')) return;
 
             var style = document.createElement('style');
-            style.innerHTML = `
-                @import url('https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600&display=swap');
-                
-                #anos-toolbox {
-                    position: fixed;
-                    top: 60px;
-                    right: 20px;
-                    width: 330px;
-                    background: rgba(10, 25, 45, 0.88);
-                    backdrop-filter: blur(12px);
-                    -webkit-backdrop-filter: blur(12px);
-                    border: 1px solid rgba(0, 191, 255, 0.25);
-                    border-radius: 16px;
-                    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 191, 255, 0.1);
-                    color: #ffffff;
-                    font-family: 'Outfit', sans-serif;
-                    z-index: 999999;
-                    user-select: none;
-                    display: none;
-                    flex-direction: column;
-                    overflow: hidden;
-                    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-                    transform: translateY(-10px);
-                    opacity: 0;
-                }
-                #anos-toolbox.visible {
-                    display: flex;
-                    transform: translateY(0);
-                    opacity: 1;
-                }
-                .toolbox-header {
-                    padding: 14px 18px;
-                    background: rgba(0, 191, 255, 0.1);
-                    border-bottom: 1px solid rgba(0, 191, 255, 0.2);
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                }
-                .toolbox-header h3 {
-                    margin: 0;
-                    font-weight: 600;
-                    font-size: 15px;
-                    letter-spacing: 0.5px;
-                    color: #00d2ff;
-                    text-shadow: 0 0 10px rgba(0, 210, 255, 0.3);
-                }
-                .toolbox-header .close-btn {
-                    cursor: pointer;
-                    font-size: 18px;
-                    color: #aaa;
-                    transition: color 0.2s;
-                }
-                .toolbox-header .close-btn:hover {
-                    color: #ff4d4d;
-                }
-                .toolbox-body {
-                    padding: 18px;
-                    max-height: 480px;
-                    overflow-y: auto;
-                }
-                .toolbox-section {
-                    margin-bottom: 18px;
-                    padding-bottom: 14px;
-                    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-                }
-                .toolbox-section:last-child {
-                    margin-bottom: 0;
-                    padding-bottom: 0;
-                    border-bottom: none;
-                }
-                .section-title {
-                    font-size: 11px;
-                    text-transform: uppercase;
-                    color: #00bfff;
-                    margin-bottom: 12px;
-                    letter-spacing: 1px;
-                    font-weight: 600;
-                }
-                .setting-row {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 12px;
-                }
-                .setting-row:last-child {
-                    margin-bottom: 0;
-                }
-                .setting-info {
-                    display: flex;
-                    flex-direction: column;
-                    padding-right: 10px;
-                }
-                .setting-label {
-                    font-size: 13px;
-                    font-weight: 400;
-                }
-                .setting-desc {
-                    font-size: 10px;
-                    color: #8899a6;
-                    margin-top: 1px;
-                }
-                .switch {
-                    position: relative;
-                    display: inline-block;
-                    width: 40px;
-                    height: 22px;
-                    flex-shrink: 0;
-                }
-                .switch input {
-                    opacity: 0;
-                    width: 0;
-                    height: 0;
-                }
-                .slider {
-                    position: absolute;
-                    cursor: pointer;
-                    top: 0; left: 0; right: 0; bottom: 0;
-                    background-color: rgba(255, 255, 255, 0.1);
-                    transition: .25s;
-                    border-radius: 22px;
-                    border: 1px solid rgba(255, 255, 255, 0.15);
-                }
-                .slider:before {
-                    position: absolute;
-                    content: "";
-                    height: 14px;
-                    width: 14px;
-                    left: 3px;
-                    bottom: 3px;
-                    background-color: #fff;
-                    transition: .25s;
-                    border-radius: 50%;
-                }
-                input:checked + .slider {
-                    background-color: #00bfff;
-                    border-color: #00d2ff;
-                    box-shadow: 0 0 8px rgba(0, 191, 255, 0.3);
-                }
-                input:checked + .slider:before {
-                    transform: translateX(18px);
-                }
-                .toolbox-select {
-                    width: 100%;
-                    background: rgba(10, 25, 45, 0.6);
-                    border: 1px solid rgba(0, 191, 255, 0.25);
-                    border-radius: 6px;
-                    color: white;
-                    padding: 6px 10px;
-                    font-family: 'Outfit', sans-serif;
-                    font-size: 12px;
-                    outline: none;
-                    cursor: pointer;
-                    margin-top: 4px;
-                    transition: border-color 0.2s;
-                }
-                .toolbox-select:focus {
-                    border-color: #00bfff;
-                }
-                .emote-grid-4 {
-                    display: grid;
-                    grid-template-columns: repeat(4, 1fr);
-                    gap: 8px;
-                    margin-top: 8px;
-                }
-                .emote-btn {
-                    background: rgba(0, 191, 255, 0.12);
-                    border: 1px solid rgba(0, 191, 255, 0.3);
-                    border-radius: 8px;
-                    color: #fff;
-                    padding: 8px 4px;
-                    font-size: 16px;
-                    cursor: pointer;
-                    display: flex;
-                    flex-direction: column;
-                    align-items: center;
-                    justify-content: center;
-                    transition: all 0.2s ease;
-                }
-                .emote-btn:hover {
-                    background: rgba(0, 191, 255, 0.35);
-                    border-color: #00d2ff;
-                    transform: scale(1.05);
-                }
-                .emote-btn span {
-                    font-size: 9px;
-                    color: #00d2ff;
-                    margin-top: 2px;
-                }
-            `;
+            style.innerHTML = "" +
+                "#anos-toolbox {" +
+                "    position: fixed;" +
+                "    top: 60px;" +
+                "    right: 20px;" +
+                "    width: 330px;" +
+                "    background: rgba(10, 25, 45, 0.88);" +
+                "    backdrop-filter: blur(12px);" +
+                "    -webkit-backdrop-filter: blur(12px);" +
+                "    border: 1px solid rgba(0, 191, 255, 0.25);" +
+                "    border-radius: 16px;" +
+                "    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6), inset 0 0 15px rgba(0, 191, 255, 0.1);" +
+                "    color: #ffffff;" +
+                "    font-family: sans-serif;" +
+                "    z-index: 999999;" +
+                "    user-select: none;" +
+                "    display: none;" +
+                "    flex-direction: column;" +
+                "    overflow: hidden;" +
+                "    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);" +
+                "    transform: translateY(-10px);" +
+                "    opacity: 0;" +
+                "}" +
+                "#anos-toolbox.visible { display: flex; transform: translateY(0); opacity: 1; }" +
+                ".toolbox-header { padding: 14px 18px; background: rgba(0, 191, 255, 0.1); border-bottom: 1px solid rgba(0, 191, 255, 0.2); display: flex; justify-content: space-between; align-items: center; }" +
+                ".toolbox-header h3 { margin: 0; font-weight: 600; font-size: 15px; letter-spacing: 0.5px; color: #00d2ff; text-shadow: 0 0 10px rgba(0, 210, 255, 0.3); }" +
+                ".toolbox-header .close-btn { cursor: pointer; font-size: 18px; color: #aaa; transition: color 0.2s; }" +
+                ".toolbox-header .close-btn:hover { color: #ff4d4d; }" +
+                ".toolbox-body { padding: 18px; max-height: 480px; overflow-y: auto; }" +
+                ".toolbox-section { margin-bottom: 18px; padding-bottom: 14px; border-bottom: 1px solid rgba(255, 255, 255, 0.08); }" +
+                ".toolbox-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }" +
+                ".section-title { font-size: 11px; text-transform: uppercase; color: #00bfff; margin-bottom: 12px; letter-spacing: 1px; font-weight: 600; }" +
+                ".setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }" +
+                ".setting-row:last-child { margin-bottom: 0; }" +
+                ".setting-info { display: flex; flex-direction: column; padding-right: 10px; }" +
+                ".setting-label { font-size: 13px; font-weight: 400; }" +
+                ".setting-desc { font-size: 10px; color: #8899a6; margin-top: 1px; }" +
+                ".switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }" +
+                ".switch input { opacity: 0; width: 0; height: 0; }" +
+                ".slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255, 255, 255, 0.1); transition: .25s; border-radius: 22px; border: 1px solid rgba(255, 255, 255, 0.15); }" +
+                ".slider:before { position: absolute; content: ''; height: 14px; width: 14px; left: 3px; bottom: 3px; background-color: #fff; transition: .25s; border-radius: 50%; }" +
+                "input:checked + .slider { background-color: #00bfff; border-color: #00d2ff; box-shadow: 0 0 8px rgba(0, 191, 255, 0.3); }" +
+                "input:checked + .slider:before { transform: translateX(18px); }" +
+                ".toolbox-select { width: 100%; background: rgba(10, 25, 45, 0.6); border: 1px solid rgba(0, 191, 255, 0.25); border-radius: 6px; color: white; padding: 6px 10px; font-size: 12px; outline: none; cursor: pointer; margin-top: 4px; transition: border-color 0.2s; }" +
+                ".toolbox-select:focus { border-color: #00bfff; }" +
+                ".emote-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }" +
+                ".emote-btn { background: rgba(0, 191, 255, 0.12); border: 1px solid rgba(0, 191, 255, 0.3); border-radius: 8px; color: #fff; padding: 8px 4px; font-size: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; }" +
+                ".emote-btn:hover { background: rgba(0, 191, 255, 0.35); border-color: #00d2ff; transform: scale(1.05); }" +
+                ".emote-btn span { font-size: 9px; color: #00d2ff; margin-top: 2px; }";
             document.head.appendChild(style);
 
             var div = document.createElement('div');
             div.id = 'anos-toolbox';
-            div.innerHTML = `
-                <div class="toolbox-header">
-                    <h3>Anos Cheat & Macro Panel</h3>
-                    <span class="close-btn" id="close-toolbox">&times;</span>
-                </div>
-                <div class="toolbox-body">
-                    <div class="toolbox-section">
-                        <div class="section-title">Combat & Aim Cheats</div>
-                        
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <span class="setting-label">AimBot (Auto-Lock Cible)</span>
-                                <span class="setting-desc">Verrouille automatiquement le viseur sur l'ennemi</span>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" id="cheat-aimbot">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <span class="setting-label">Aim-Predict (Visée Anticipée)</span>
-                                <span class="setting-desc">Anticipe la trajectoire de l'ennemi selon les lasers</span>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" id="cheat-aimpredict">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-
-                    <div class="toolbox-section">
-                        <div class="section-title">Cheats & Modifications</div>
-                        
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <span class="setting-label">Zoom Hack (FOV)</span>
-                                <span class="setting-desc">Scroll wheel to zoom camera</span>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" id="cheat-zoom" checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <span class="setting-label">Noob Pass</span>
-                                <span class="setting-desc">Rename Elite Pass to Noob Pass</span>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" id="cheat-noobpass" checked>
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <span class="setting-label">Fast Respawn</span>
-                                <span class="setting-desc">Activer / Enlever le Fast Respawn</span>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" id="cheat-fastrespawn">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                    </div>
-                    
-                    <div class="toolbox-section">
-                        <div class="section-title">Émotes Custom Manuelles (4 Colonnes)</div>
-                        <div class="emote-grid-4">
-                            <button class="emote-btn" onclick="window.sendEmoteDirect('J')">░<span>Blank (J)</span></button>
-                            <button class="emote-btn" onclick="window.sendEmoteDirect('U')">🤡<span>Clown (U)</span></button>
-                            <button class="emote-btn" onclick="window.sendEmoteDirect('I')">🔥<span>Fire (I)</span></button>
-                            <button class="emote-btn" onclick="window.sendEmoteDirect('V')">💀<span>Skull (V)</span></button>
-                        </div>
-                    </div>
-
-                    <div class="toolbox-section">
-                        <div class="section-title">Emoji GIF Macro</div>
-                        
-                        <div class="setting-row">
-                            <div class="setting-info">
-                                <span class="setting-label">Auto GIF Macro</span>
-                                <span class="setting-desc">Toggle the emoji animation loop</span>
-                            </div>
-                            <label class="switch">
-                                <input type="checkbox" id="macro-gif-toggle">
-                                <span class="slider"></span>
-                            </label>
-                        </div>
-                        
-                        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">
-                            <div class="setting-label">Preset Animation</div>
-                            <select class="toolbox-select" id="macro-preset">
-                                <option value="salute">Salute — Hello, Yes, GG, No Prob, Bye</option>
-                                <option value="tactic">Tactic — Team, Follow, Attack, Help, Kill</option>
-                                <option value="hype">Hype — GG, Yes, Thanks, No Prob, Hello</option>
-                                <option value="fusion">Fusion (mixed) — GG, Custom, Yes, Custom, Kill</option>
-                                <option value="mode_fixe">Mode 1 — Fixe1, Blank, Clavier/Custom, Blank, Fixe1</option>
-                                <option value="mode_tng">Mode 2 — TOI NON GG (TNG) Défilant (G -> D)</option>
-                            </select>
-                        </div>
-
-                        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">
-                            <div class="setting-label">Pos 3 Emote (Mode 1)</div>
-                            <select class="toolbox-select" id="macro-pos3-emote">
-                                <option value="X">X — Thanks (Par défaut / Tape au clavier)</option>
-                                <option value="G">G — GG</option>
-                                <option value="Y">Y — Yes</option>
-                                <option value="L">L — Hello</option>
-                                <option value="S">S — Smile</option>
-                                <option value="K">K — Kill</option>
-                                <option value="H">H — Help</option>
-                                <option value="U">U — Custom Clown 🤡</option>
-                                <option value="V">V — Custom Skull 💀</option>
-                            </select>
-                        </div>
-                        
-                        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">
-                            <div class="setting-label">Speed (Frame rate)</div>
-                            <select class="toolbox-select" id="macro-speed">
-                                <option value="300">Fast (300ms)</option>
-                                <option value="500" selected>Normal (500ms)</option>
-                                <option value="800">Slow (800ms)</option>
-                                <option value="1200">Very Slow (1.2s)</option>
-                            </select>
-                        </div>
-                    </div>
-                </div>
-            `;
+            div.innerHTML = '' +
+                '<div class="toolbox-header">' +
+                '    <h3>Anos Cheat & Macro Panel</h3>' +
+                '    <span class="close-btn" id="close-toolbox">&times;</span>' +
+                '</div>' +
+                '<div class="toolbox-body">' +
+                '    <div class="toolbox-section">' +
+                '        <div class="section-title">Combat & Aim Cheats</div>' +
+                '        <div class="setting-row">' +
+                '            <div class="setting-info">' +
+                '                <span class="setting-label">AimBot (Auto-Lock Cible)</span>' +
+                '                <span class="setting-desc">Verrouille automatiquement le viseur sur l'ennemi</span>' +
+                '            </div>' +
+                '            <label class="switch">' +
+                '                <input type="checkbox" id="cheat-aimbot">' +
+                '                <span class="slider"></span>' +
+                '            </label>' +
+                '        </div>' +
+                '        <div class="setting-row">' +
+                '            <div class="setting-info">' +
+                '                <span class="setting-label">Aim-Predict (Visée Anticipée)</span>' +
+                '                <span class="setting-desc">Anticipe la trajectoire de l'ennemi selon les lasers</span>' +
+                '            </div>' +
+                '            <label class="switch">' +
+                '                <input type="checkbox" id="cheat-aimpredict">' +
+                '                <span class="slider"></span>' +
+                '            </label>' +
+                '        </div>' +
+                '    </div>' +
+                '    <div class="toolbox-section">' +
+                '        <div class="section-title">Cheats & Modifications</div>' +
+                '        <div class="setting-row">' +
+                '            <div class="setting-info">' +
+                '                <span class="setting-label">Zoom Hack (FOV)</span>' +
+                '                <span class="setting-desc">Scroll wheel to zoom camera</span>' +
+                '            </div>' +
+                '            <label class="switch">' +
+                '                <input type="checkbox" id="cheat-zoom" checked>' +
+                '                <span class="slider"></span>' +
+                '            </label>' +
+                '        </div>' +
+                '        <div class="setting-row">' +
+                '            <div class="setting-info">' +
+                '                <span class="setting-label">Noob Pass</span>' +
+                '                <span class="setting-desc">Rename Elite Pass to Noob Pass</span>' +
+                '            </div>' +
+                '            <label class="switch">' +
+                '                <input type="checkbox" id="cheat-noobpass" checked>' +
+                '                <span class="slider"></span>' +
+                '            </label>' +
+                '        </div>' +
+                '        <div class="setting-row">' +
+                '            <div class="setting-info">' +
+                '                <span class="setting-label">Fast Respawn</span>' +
+                '                <span class="setting-desc">Activer / Enlever le Fast Respawn</span>' +
+                '            </div>' +
+                '            <label class="switch">' +
+                '                <input type="checkbox" id="cheat-fastrespawn">' +
+                '                <span class="slider"></span>' +
+                '            </label>' +
+                '        </div>' +
+                '    </div>' +
+                '    <div class="toolbox-section">' +
+                '        <div class="section-title">Émotes Custom Manuelles (4 Colonnes)</div>' +
+                '        <div class="emote-grid-4">' +
+                '            <button class="emote-btn" onclick="window.sendEmoteDirect('J')">░<span>Blank (J)</span></button>' +
+                '            <button class="emote-btn" onclick="window.sendEmoteDirect('U')">🤡<span>Clown (U)</span></button>' +
+                '            <button class="emote-btn" onclick="window.sendEmoteDirect('I')">🔥<span>Fire (I)</span></button>' +
+                '            <button class="emote-btn" onclick="window.sendEmoteDirect('V')">💀<span>Skull (V)</span></button>' +
+                '        </div>' +
+                '    </div>' +
+                '    <div class="toolbox-section">' +
+                '        <div class="section-title">Emoji GIF Macro</div>' +
+                '        <div class="setting-row">' +
+                '            <div class="setting-info">' +
+                '                <span class="setting-label">Auto GIF Macro</span>' +
+                '                <span class="setting-desc">Toggle the emoji animation loop</span>' +
+                '            </div>' +
+                '            <label class="switch">' +
+                '                <input type="checkbox" id="macro-gif-toggle">' +
+                '                <span class="slider"></span>' +
+                '            </label>' +
+                '        </div>' +
+                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
+                '            <div class="setting-label">Preset Animation</div>' +
+                '            <select class="toolbox-select" id="macro-preset">' +
+                '                <option value="salute">Salute — Hello, Yes, GG, No Prob, Bye</option>' +
+                '                <option value="tactic">Tactic — Team, Follow, Attack, Help, Kill</option>' +
+                '                <option value="hype">Hype — GG, Yes, Thanks, No Prob, Hello</option>' +
+                '                <option value="fusion">Fusion (mixed) — GG, Custom, Yes, Custom, Kill</option>' +
+                '                <option value="mode_fixe">Mode 1 — Fixe1, Blank, Clavier/Custom, Blank, Fixe1</option>' +
+                '                <option value="mode_tng">Mode 2 — TOI NON GG (TNG) Défilant (G -> D)</option>' +
+                '            </select>' +
+                '        </div>' +
+                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
+                '            <div class="setting-label">Pos 3 Emote (Mode 1)</div>' +
+                '            <select class="toolbox-select" id="macro-pos3-emote">' +
+                '                <option value="X">X — Thanks (Par défaut / Tape au clavier)</option>' +
+                '                <option value="G">G — GG</option>' +
+                '                <option value="Y">Y — Yes</option>' +
+                '                <option value="L">L — Hello</option>' +
+                '                <option value="S">S — Smile</option>' +
+                '                <option value="K">K — Kill</option>' +
+                '                <option value="H">H — Help</option>' +
+                '                <option value="U">U — Custom Clown 🤡</option>' +
+                '                <option value="V">V — Custom Skull 💀</option>' +
+                '            </select>' +
+                '        </div>' +
+                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
+                '            <div class="setting-label">Speed (Frame rate)</div>' +
+                '            <select class="toolbox-select" id="macro-speed">' +
+                '                <option value="300">Fast (300ms)</option>' +
+                '                <option value="500" selected>Normal (500ms)</option>' +
+                '                <option value="800">Slow (800ms)</option>' +
+                '                <option value="1200">Very Slow (1.2s)</option>' +
+                '            </select>' +
+                '        </div>' +
+                '    </div>' +
+                '</div>';
             document.body.appendChild(div);
 
             document.getElementById('close-toolbox').addEventListener('click', function() {
                 var panel = document.getElementById('anos-toolbox');
                 panel.classList.remove('visible');
-                setTimeout(() => { panel.style.display = 'none'; }, 300);
+                setTimeout(function() { panel.style.display = 'none'; }, 300);
             });
 
             document.getElementById('cheat-aimbot').addEventListener('change', function(e) {
@@ -3833,7 +3669,6 @@
             initAnosToolbox();
         }
 
-        // Ecouteur de raccourci Alt+A universel (AZERTY / QWERTY)
         window.addEventListener('keydown', function(e) {
             var isA = (e.code === 'KeyA' || e.keyCode === 65 || (e.key && e.key.toLowerCase() === 'a'));
             if (!e.altKey || !isA || e.repeat) return;
