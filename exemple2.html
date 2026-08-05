@@ -3550,62 +3550,40 @@
         // --- AIMBOT LOGIC & WEBSOCKET INTERCEPTION ---
         function getAimbotTargetAngle() {
             var game = window.gameInstance;
-            if (!game || !game.display || !game.display.screen) return null;
+            if (!game || !game.I0lO1 || !game.IO1OO || !game.IO1OO.lOII1 || !game.IO1OO.lOII1.OI0I0) return null;
             
-            var screen = game.display.screen;
-            var myShip = screen.ship;
-            var world = screen.lOII1;
-            if (!myShip || !world || !world.ships) return null;
+            var myShipStatus = game.I0lO1.status;
+            if (!myShipStatus || !myShipStatus.alive) return null;
             
-            var myX = myShip.x;
-            var myY = myShip.y;
-            if (myX === undefined || myY === undefined) {
-                if (myShip.status) {
-                    myX = myShip.status.x;
-                    myY = myShip.status.y;
-                } else {
-                    return null;
-                }
-            }
+            var myX = myShipStatus.x;
+            var myY = myShipStatus.y;
+            var myTeam = myShipStatus.team;
             
+            var enemies = game.IO1OO.lOII1.OI0I0;
             var closestEnemy = null;
             var minDist = Infinity;
-            var mapSize = 800;
+            var mapSize = 800; // default
             
             if (game.mode && game.mode.options) {
                 mapSize = (game.mode.options.map_size * 10) || 800;
             }
             
-            for (var i = 0; i < world.ships.length; i++) {
-                var ship = world.ships[i];
-                if (!ship || ship === myShip) continue;
+            for (var id in enemies) {
+                if (!enemies.hasOwnProperty(id)) continue;
+                var enemyWrapper = enemies[id];
+                if (!enemyWrapper || !enemyWrapper.lOOlI || !enemyWrapper.lOOlI.status) continue;
                 
-                // Check alive status
-                var isAlive = ship.alive;
-                if (isAlive === undefined && ship.status) isAlive = ship.status.alive;
-                if (!isAlive) continue;
+                var enemyStatus = enemyWrapper.lOOlI.status;
+                if (!enemyStatus.alive) continue;
+                if (myTeam !== undefined && enemyStatus.team === myTeam) continue; // ignore teammates
                 
-                // Check team status
-                var myTeam = myShip.team;
-                if (myTeam === undefined && myShip.status) myTeam = myShip.status.team;
-                var shipTeam = ship.team;
-                if (shipTeam === undefined && ship.status) shipTeam = ship.status.team;
-                if (myTeam !== undefined && shipTeam === myTeam) continue;
-                
-                var sX = ship.x;
-                var sY = ship.y;
-                if (sX === undefined || sY === undefined) {
-                    if (ship.status) {
-                        sX = ship.status.x;
-                        sY = ship.status.y;
-                    } else {
-                        continue;
-                    }
-                }
+                var sX = enemyStatus.x;
+                var sY = enemyStatus.y;
                 
                 var dx = sX - myX;
                 var dy = sY - myY;
                 
+                // Wrap-around math
                 dx = ((dx % mapSize) + mapSize) % mapSize;
                 if (dx > mapSize / 2) dx -= mapSize;
                 dy = ((dy % mapSize) + mapSize) % mapSize;
@@ -3614,25 +3592,15 @@
                 var dist = dx * dx + dy * dy;
                 if (dist < minDist) {
                     minDist = dist;
-                    closestEnemy = ship;
+                    closestEnemy = enemyStatus;
                 }
             }
             
             if (closestEnemy) {
                 var sX = closestEnemy.x;
                 var sY = closestEnemy.y;
-                var sVx = closestEnemy.vx;
-                var sVy = closestEnemy.vy;
-                if (sX === undefined || sY === undefined) {
-                    if (closestEnemy.status) {
-                        sX = closestEnemy.status.x;
-                        sY = closestEnemy.status.y;
-                        sVx = closestEnemy.status.vx;
-                        sVy = closestEnemy.status.vy;
-                    } else {
-                        return null;
-                    }
-                }
+                var sVx = closestEnemy.vx || 0;
+                var sVy = closestEnemy.vy || 0;
                 
                 var dx = sX - myX;
                 var dy = sY - myY;
@@ -3647,14 +3615,11 @@
                     var bulletSpeed = 14; 
                     var travelTime = distance / bulletSpeed;
                     
-                    var targetVx = sVx || 0;
-                    var targetVy = sVy || 0;
-                    
-                    dx += targetVx * travelTime;
-                    dy += targetVy * travelTime;
+                    dx += sVx * travelTime;
+                    dy += sVy * travelTime;
                 }
                 
-                // Correction du bug d'angle : suppression du signe négatif comme dans bot.js
+                // Math.atan2 instead of -Math.atan2 because we use world coordinates directly
                 var angle = Math.atan2(dy, dx) * 180 / Math.PI;
                 if (angle < 0) angle += 360;
                 
@@ -3662,7 +3627,7 @@
                     angle: angle,
                     distance: distance,
                     fire: true,
-                    thrust: distance > 120 // Reste à bonne distance comme dans bot.js
+                    thrust: distance > 120
                 };
             }
             return null;
@@ -3678,12 +3643,12 @@
                     if (targetInfo !== null) {
                         let flags = val & ~4095; // Supprime l'angle d'origine
                         
-                        // Application des actions automatiques du bot
+                        // Application des actions automatiques
                         if (targetInfo.fire) flags |= 8192;
                         if (targetInfo.thrust) flags |= 4096;
-                        else flags &= ~4096; // Ne pas avancer si on est trop près
+                        else flags &= ~4096;
 
-                        val = flags + Math.round(targetInfo.angle);
+                        val = flags + (Math.round(targetInfo.angle) % 360);
                         data = val.toString();
                     }
                 }
