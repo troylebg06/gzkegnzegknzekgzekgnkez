@@ -3103,7 +3103,9 @@
     window.modSettings = {
         fovEnabled: true,
         noobPassEnabled: true,
-        fastRespawnEnabled: false, // Fast Respawn desactivable dans le menu
+        fastRespawnEnabled: false,
+        aimbotEnabled: false,       # Cheat 1: AimBot (Auto-Lock)
+        aimPredictEnabled: false,   # Cheat 2: Aim-Predict (Lead Target)
         gifMacroEnabled: false,
         lastTypedEmote: 'X',
         fixedPos1Emote: 'L'
@@ -3133,6 +3135,111 @@
             if (respawnBtn) respawnBtn.click();
         }
     }, 200);
+
+    /* ===== CHEAT 1 & 2: AIMBOT & AIM-PREDICT (Auto-Aim + Visée Anticipée) ===== */
+    let isAimingActive = false;
+
+    // Active AimBot si le clic droit ou la touche Maj est maintenue, ou si AimBot toggle est activé
+    window.addEventListener('mousedown', function(e) {
+        if (e.button === 2 && window.modSettings && window.modSettings.aimbotEnabled) {
+            isAimingActive = true;
+        }
+    });
+
+    window.addEventListener('mouseup', function(e) {
+        if (e.button === 2) {
+            isAimingActive = false;
+        }
+    });
+
+    window.addEventListener('contextmenu', function(e) {
+        if (window.modSettings && window.modSettings.aimbotEnabled) {
+            e.preventDefault();
+        }
+    });
+
+    window.addEventListener('keydown', function(e) {
+        if (e.key === 'Shift' && window.modSettings && window.modSettings.aimbotEnabled) {
+            isAimingActive = true;
+        }
+    });
+
+    window.addEventListener('keyup', function(e) {
+        if (e.key === 'Shift') {
+            isAimingActive = false;
+        }
+    });
+
+    function runAimBotLoop() {
+        requestAnimationFrame(runAimBotLoop);
+
+        if (!window.modSettings || !window.modSettings.aimbotEnabled) return;
+
+        var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
+        if (!game || !game.IO1OO || !game.IO1OO.lOII1 || !game.I0lO1 || !game.I0lO1.status || !game.I0lO1.status.alive) return;
+
+        var playerStatus = game.I0lO1.status;
+        var ships = game.IO1OO.lOII1.ships;
+        if (!ships || !ships.length) return;
+
+        var closestEnemy = null;
+        var minDistance = Infinity;
+
+        for (var i = 0; i < ships.length; i++) {
+            var target = ships[i];
+            if (!target || !target.lOOlI || !target.lOOlI.status) continue;
+            var st = target.lOOlI.status;
+
+            // Ignorer son propre vaisseau, les morts, les invulnérables et les alliés
+            if (st.id === playerStatus.id || !st.alive || st.invulnerable) continue;
+            if (st.friendly || (playerStatus.friendly && st.friendly === playerStatus.friendly)) continue;
+
+            var dx = st.x - playerStatus.x;
+            var dy = st.y - playerStatus.y;
+
+            // Gestion de la carte torique (wrap map boundary)
+            if (game.OI0ll) {
+                if (dx > game.OI0ll / 2) dx -= game.size;
+                if (dx < -game.OI0ll / 2) dx += game.size;
+                if (dy > game.OI0ll / 2) dy -= game.size;
+                if (dy < -game.OI0ll / 2) dy += game.size;
+            }
+
+            var dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < minDistance) {
+                minDistance = dist;
+                closestEnemy = { target: target, dx: dx, dy: dy, dist: dist, vx: st.O0l1l || 0, vy: st.lIOIl || 0 };
+            }
+        }
+
+        if (!closestEnemy) return;
+
+        var targetX = closestEnemy.dx;
+        var targetY = closestEnemy.dy;
+
+        // Cheat 2: Aim-Predict (Anticipation de la trajectoire en fonction de la vitesse des lasers)
+        if (window.modSettings.aimPredictEnabled) {
+            var laserSpeed = 110; // Vitesse moyenne des tirs
+            if (game.I0lO1.instance && game.I0lO1.instance.lasers && game.I0lO1.instance.lasers[0]) {
+                laserSpeed = game.I0lO1.instance.lasers[0].speed || 110;
+            }
+
+            var timeToHit = (closestEnemy.dist / laserSpeed) * 0.85;
+            targetX += closestEnemy.vx * timeToHit * 60;
+            targetY += closestEnemy.vy * timeToHit * 60;
+        }
+
+        // Calcul de l'angle en degrés pour Starblast (0..360)
+        var angleRad = Math.atan2(targetY, targetX);
+        var angleDeg = Math.round((-angleRad / Math.PI * 180 + 360) % 360);
+
+        // Appliquer l'angle au vaisseau du joueur
+        if (game.I0lO1.l11II) {
+            game.I0lO1.l11II.angle = angleDeg;
+            game.I0lO1.O10OI();
+        }
+    }
+    runAimBotLoop();
 
     // Zoom fluide molette (FOV)
     window.customZoomMultiplier = 1.0;
@@ -3174,7 +3281,17 @@
     }
     setInterval(ensureCustomEmotes, 1000);
 
-    // Capture user typed emote from keyboard for Mode 1 (ignore shortcut keys like Alt+A!)
+    // Declenchement manuel direct d'une emote
+    window.sendEmoteDirect = function(key) {
+        ensureCustomEmotes();
+        var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
+        var chat = game && game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.chatpanel;
+        if (chat) {
+            chat.typed(key);
+        }
+    };
+
+    // Capture des emotes tapees au clavier (sans interférer avec les raccourcis système)
     window.addEventListener('keydown', function(e) {
         if (e.altKey || e.ctrlKey || e.metaKey) return;
         if (!e.key) return;
@@ -3215,10 +3332,10 @@
                 ['Y', 'U', 'G', 'J', 'K']
             ],
             mode_tng: [
-                ['E', 'J', 'J'],
-                ['J', 'E', 'J'],
-                ['J', 'J', 'E'],
-                ['J', 'E', 'J']
+                ['T', 'N', 'G', 'J', 'J'], // Pos 1-3: TOI NON GG
+                ['J', 'T', 'N', 'G', 'J'], // Pos 2-4: TOI NON GG
+                ['J', 'J', 'T', 'N', 'G'], // Pos 3-5: TOI NON GG
+                ['J', 'T', 'N', 'G', 'J']  // Pos 2-4: Aller-retour
             ]
         };
 
@@ -3310,8 +3427,8 @@
                     position: fixed;
                     top: 60px;
                     right: 20px;
-                    width: 320px;
-                    background: rgba(10, 25, 45, 0.85);
+                    width: 330px;
+                    background: rgba(10, 25, 45, 0.88);
                     backdrop-filter: blur(12px);
                     -webkit-backdrop-filter: blur(12px);
                     border: 1px solid rgba(0, 191, 255, 0.25);
@@ -3360,7 +3477,7 @@
                 }
                 .toolbox-body {
                     padding: 18px;
-                    max-height: 450px;
+                    max-height: 480px;
                     overflow-y: auto;
                 }
                 .toolbox-section {
@@ -3461,6 +3578,36 @@
                 .toolbox-select:focus {
                     border-color: #00bfff;
                 }
+                .emote-grid-4 {
+                    display: grid;
+                    grid-template-columns: repeat(4, 1fr);
+                    gap: 8px;
+                    margin-top: 8px;
+                }
+                .emote-btn {
+                    background: rgba(0, 191, 255, 0.12);
+                    border: 1px solid rgba(0, 191, 255, 0.3);
+                    border-radius: 8px;
+                    color: #fff;
+                    padding: 8px 4px;
+                    font-size: 16px;
+                    cursor: pointer;
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    justify-content: center;
+                    transition: all 0.2s ease;
+                }
+                .emote-btn:hover {
+                    background: rgba(0, 191, 255, 0.35);
+                    border-color: #00d2ff;
+                    transform: scale(1.05);
+                }
+                .emote-btn span {
+                    font-size: 9px;
+                    color: #00d2ff;
+                    margin-top: 2px;
+                }
             `;
             document.head.appendChild(style);
 
@@ -3472,6 +3619,32 @@
                     <span class="close-btn" id="close-toolbox">&times;</span>
                 </div>
                 <div class="toolbox-body">
+                    <div class="toolbox-section">
+                        <div class="section-title">Combat & Aim Cheats</div>
+                        
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">AimBot (Auto-Lock Cible)</span>
+                                <span class="setting-desc">Verrouille le viseur sur l'ennemi le plus proche</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="cheat-aimbot">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div class="setting-row">
+                            <div class="setting-info">
+                                <span class="setting-label">Aim-Predict (Visée Anticipée)</span>
+                                <span class="setting-desc">Anticipe la trajectoire de l'ennemi selon la vitesse des lasers</span>
+                            </div>
+                            <label class="switch">
+                                <input type="checkbox" id="cheat-aimpredict">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="toolbox-section">
                         <div class="section-title">Cheats & Modifications</div>
                         
@@ -3510,6 +3683,16 @@
                     </div>
                     
                     <div class="toolbox-section">
+                        <div class="section-title">Émotes Custom Manuelles (4 Colonnes)</div>
+                        <div class="emote-grid-4">
+                            <button class="emote-btn" onclick="window.sendEmoteDirect('J')">░<span>Blank (J)</span></button>
+                            <button class="emote-btn" onclick="window.sendEmoteDirect('U')">🤡<span>Clown (U)</span></button>
+                            <button class="emote-btn" onclick="window.sendEmoteDirect('I')">🔥<span>Fire (I)</span></button>
+                            <button class="emote-btn" onclick="window.sendEmoteDirect('V')">💀<span>Skull (V)</span></button>
+                        </div>
+                    </div>
+
+                    <div class="toolbox-section">
                         <div class="section-title">Emoji GIF Macro</div>
                         
                         <div class="setting-row">
@@ -3531,7 +3714,7 @@
                                 <option value="hype">Hype — GG, Yes, Thanks, No Prob, Hello</option>
                                 <option value="fusion">Fusion (mixed) — GG, Custom, Yes, Custom, Kill</option>
                                 <option value="mode_fixe">Mode 1 — Fixe1, Blank, Clavier/Custom, Blank, Fixe1</option>
-                                <option value="mode_tng">Mode 2 — Moving "Toi" (TNG) (G -> D)</option>
+                                <option value="mode_tng">Mode 2 — TOI NON GG (TNG) Défilant (G -> D)</option>
                             </select>
                         </div>
 
@@ -3568,6 +3751,14 @@
                 var panel = document.getElementById('anos-toolbox');
                 panel.classList.remove('visible');
                 setTimeout(() => { panel.style.display = 'none'; }, 300);
+            });
+
+            document.getElementById('cheat-aimbot').addEventListener('change', function(e) {
+                window.modSettings.aimbotEnabled = e.target.checked;
+            });
+
+            document.getElementById('cheat-aimpredict').addEventListener('change', function(e) {
+                window.modSettings.aimPredictEnabled = e.target.checked;
             });
 
             document.getElementById('cheat-zoom').addEventListener('change', function(e) {
