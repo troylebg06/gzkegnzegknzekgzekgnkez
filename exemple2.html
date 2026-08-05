@@ -3555,10 +3555,18 @@
             var screen = game.display.screen;
             var myShip = screen.ship;
             var world = screen.lOII1;
-            if (!myShip || !world || !world.ships || !myShip.status) return null;
+            if (!myShip || !world || !world.ships) return null;
             
-            var myX = myShip.status.x;
-            var myY = myShip.status.y;
+            var myX = myShip.x;
+            var myY = myShip.y;
+            if (myX === undefined || myY === undefined) {
+                if (myShip.status) {
+                    myX = myShip.status.x;
+                    myY = myShip.status.y;
+                } else {
+                    return null;
+                }
+            }
             
             var closestEnemy = null;
             var minDist = Infinity;
@@ -3570,13 +3578,33 @@
             
             for (var i = 0; i < world.ships.length; i++) {
                 var ship = world.ships[i];
-                if (!ship || ship === myShip || !ship.status || !ship.status.alive) continue;
+                if (!ship || ship === myShip) continue;
                 
-                // Ignore teammate in team mode
-                if (myShip.status.team !== undefined && ship.status.team === myShip.status.team) continue;
+                // Check alive status
+                var isAlive = ship.alive;
+                if (isAlive === undefined && ship.status) isAlive = ship.status.alive;
+                if (!isAlive) continue;
                 
-                var dx = ship.status.x - myX;
-                var dy = ship.status.y - myY;
+                // Check team status
+                var myTeam = myShip.team;
+                if (myTeam === undefined && myShip.status) myTeam = myShip.status.team;
+                var shipTeam = ship.team;
+                if (shipTeam === undefined && ship.status) shipTeam = ship.status.team;
+                if (myTeam !== undefined && shipTeam === myTeam) continue;
+                
+                var sX = ship.x;
+                var sY = ship.y;
+                if (sX === undefined || sY === undefined) {
+                    if (ship.status) {
+                        sX = ship.status.x;
+                        sY = ship.status.y;
+                    } else {
+                        continue;
+                    }
+                }
+                
+                var dx = sX - myX;
+                var dy = sY - myY;
                 
                 dx = ((dx % mapSize) + mapSize) % mapSize;
                 if (dx > mapSize / 2) dx -= mapSize;
@@ -3591,8 +3619,23 @@
             }
             
             if (closestEnemy) {
-                var dx = closestEnemy.status.x - myX;
-                var dy = closestEnemy.status.y - myY;
+                var sX = closestEnemy.x;
+                var sY = closestEnemy.y;
+                var sVx = closestEnemy.vx;
+                var sVy = closestEnemy.vy;
+                if (sX === undefined || sY === undefined) {
+                    if (closestEnemy.status) {
+                        sX = closestEnemy.status.x;
+                        sY = closestEnemy.status.y;
+                        sVx = closestEnemy.status.vx;
+                        sVy = closestEnemy.status.vy;
+                    } else {
+                        return null;
+                    }
+                }
+                
+                var dx = sX - myX;
+                var dy = sY - myY;
                 
                 dx = ((dx % mapSize) + mapSize) % mapSize;
                 if (dx > mapSize / 2) dx -= mapSize;
@@ -3604,8 +3647,8 @@
                     var bulletSpeed = 14; 
                     var travelTime = distance / bulletSpeed;
                     
-                    var targetVx = closestEnemy.status.vx || 0;
-                    var targetVy = closestEnemy.status.vy || 0;
+                    var targetVx = sVx || 0;
+                    var targetVy = sVy || 0;
                     
                     dx += targetVx * travelTime;
                     dy += targetVy * travelTime;
