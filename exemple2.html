@@ -3106,7 +3106,7 @@
         fastRespawnEnabled: false,
         aimbotEnabled: false,
         aimPredictEnabled: false,
-        aimbotAlwaysOn: true, // AimBot actif quand l'interrupteur est ON
+        aimbotAlwaysOn: true,
         gifMacroEnabled: false,
         lastTypedEmote: 'X',
         fixedPos1Emote: 'L'
@@ -3184,7 +3184,7 @@
             // Filtrer soi-même, les morts, les invulnérables
             if (st.id === playerStatus.id || !st.alive || st.invulnerable) continue;
             
-            # Filtrer les alliés (par statut friendly ou par numéro d'équipe team)
+            // Filtrer les alliés (par statut friendly ou par numéro d'équipe team)
             if (st.friendly || (playerStatus.friendly && st.friendly === playerStatus.friendly)) continue;
             if (playerStatus.team && st.team && playerStatus.team === st.team) continue;
 
