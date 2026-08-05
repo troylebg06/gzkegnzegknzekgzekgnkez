@@ -3105,6 +3105,7 @@
         fastRespawnEnabled: false,
         aimbotEnabled: false,
         aimPredictEnabled: false,
+        aimPredictMult: 1.0,
         aimbotAlwaysOn: true,
         gifMacroEnabled: false,
         lastTypedEmote: 'X',
@@ -3209,8 +3210,13 @@
                 laserSpeed = playerShip.instance.lasers[0].speed || 110;
             }
             var timeToHit = (closestEnemy.dist / laserSpeed);
-            targetX += closestEnemy.vx * timeToHit * 60;
-            targetY += closestEnemy.vy * timeToHit * 60;
+            var predictMult = parseFloat(window.modSettings.aimPredictMult) || 1.0;
+            
+            var pVx = playerStatus.O0l1l || 0;
+            var pVy = playerStatus.lIOIl || 0;
+            
+            targetX += (closestEnemy.vx - pVx) * timeToHit * predictMult;
+            targetY += (closestEnemy.vy - pVy) * timeToHit * predictMult;
         }
 
         var angleRad = -Math.atan2(targetY, targetX);
@@ -3233,23 +3239,30 @@
 
         var origI0I00 = O0OlI.prototype.I0I00;
         O0OlI.prototype.I0I00 = function() {
+            var ret = origI0I00.apply(this, arguments);
             var targetAngle = computeAimAngle(this);
-            if (targetAngle !== null && this.ship && this.ship.l11II) {
-                this.ship.l11II.angle = targetAngle;
-                this.ship.O10OI();
+            if (targetAngle !== null) {
+                this.angle = targetAngle;
+                if (this.ship && this.ship.l11II) {
+                    this.ship.l11II.angle = targetAngle;
+                    this.ship.O10OI();
+                }
             }
-            return origI0I00.apply(this, arguments);
+            return ret;
         };
 
         var origMouseMove = O0OlI.prototype.mouseMove;
         O0OlI.prototype.mouseMove = function(t, e, i) {
+            var ret = origMouseMove.apply(this, arguments);
             var targetAngle = computeAimAngle(this);
-            if (targetAngle !== null && this.ship && this.ship.l11II) {
-                this.ship.l11II.angle = targetAngle;
-                this.ship.O10OI();
-                return true;
+            if (targetAngle !== null) {
+                this.angle = targetAngle;
+                if (this.ship && this.ship.l11II) {
+                    this.ship.l11II.angle = targetAngle;
+                    this.ship.O10OI();
+                }
             }
-            return origMouseMove.apply(this, arguments);
+            return ret;
         };
     }
     setInterval(hookStarblastControl, 300);
@@ -3433,7 +3446,7 @@
                 "    position: fixed;" +
                 "    top: 60px;" +
                 "    right: 20px;" +
-                "    width: 330px;" +
+                "    width: 340px;" +
                 "    background: rgba(10, 25, 45, 0.88);" +
                 "    backdrop-filter: blur(12px);" +
                 "    -webkit-backdrop-filter: blur(12px);" +
@@ -3473,6 +3486,8 @@
                 "input:checked + .slider:before { transform: translateX(18px); }" +
                 ".toolbox-select { width: 100%; background: rgba(10, 25, 45, 0.6); border: 1px solid rgba(0, 191, 255, 0.25); border-radius: 6px; color: white; padding: 6px 10px; font-size: 12px; outline: none; cursor: pointer; margin-top: 4px; transition: border-color 0.2s; }" +
                 ".toolbox-select:focus { border-color: #00bfff; }" +
+                ".range-slider { -webkit-appearance: none; width: 100%; height: 6px; background: rgba(255, 255, 255, 0.1); border-radius: 3px; outline: none; margin-top: 8px; }" +
+                ".range-slider::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 14px; height: 14px; border-radius: 50%; background: #00bfff; cursor: pointer; }" +
                 ".emote-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }" +
                 ".emote-btn { background: rgba(0, 191, 255, 0.12); border: 1px solid rgba(0, 191, 255, 0.3); border-radius: 8px; color: #fff; padding: 8px 4px; font-size: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; }" +
                 ".emote-btn:hover { background: rgba(0, 191, 255, 0.35); border-color: #00d2ff; transform: scale(1.05); }" +
@@ -3501,13 +3516,20 @@
                 '        </div>' +
                 '        <div class="setting-row">' +
                 '            <div class="setting-info">' +
-                '                <span class="setting-label">Aim-Predict (Vis\xE9e Anticip\xE9e)</span>' +
+                '                <span class="setting-label">Aim-Predict (Visee Anticipee)</span>' +
                 '                <span class="setting-desc">Anticipe la trajectoire selon les lasers</span>' +
                 '            </div>' +
                 '            <label class="switch">' +
                 '                <input type="checkbox" id="cheat-aimpredict">' +
                 '                <span class="slider"></span>' +
                 '            </label>' +
+                '        </div>' +
+                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start; margin-top: 4px;">' +
+                '            <div style="display: flex; justify-content: space-between; width: 100%;">' +
+                '                <span class="setting-label">Aim Predict Multiplier</span>' +
+                '                <span class="setting-label" id="predict-mult-val" style="color: #00bfff;">1.0x</span>' +
+                '            </div>' +
+                '            <input type="range" min="0" max="3" step="0.1" value="1.0" class="range-slider" id="cheat-aimpredict-mult">' +
                 '        </div>' +
                 '    </div>' +
                 '    <div class="toolbox-section">' +
@@ -3614,6 +3636,11 @@
 
             document.getElementById('cheat-aimpredict').addEventListener('change', function(e) {
                 window.modSettings.aimPredictEnabled = e.target.checked;
+            });
+            
+            document.getElementById('cheat-aimpredict-mult').addEventListener('input', function(e) {
+                window.modSettings.aimPredictMult = parseFloat(e.target.value);
+                document.getElementById('predict-mult-val').textContent = e.target.value + 'x';
             });
 
             document.getElementById('cheat-zoom').addEventListener('change', function(e) {
