@@ -3106,7 +3106,7 @@
         fastRespawnEnabled: false,
         aimbotEnabled: false,
         aimPredictEnabled: false,
-        aimbotAlwaysOn: true, // AimBot actif dès que l'interrupteur est ON
+        aimbotAlwaysOn: true, // AimBot actif quand l'interrupteur est ON
         gifMacroEnabled: false,
         lastTypedEmote: 'X',
         fixedPos1Emote: 'L'
@@ -3137,7 +3137,7 @@
         }
     }, 200);
 
-    /* ===== HOOK AIMBOT & AIM-PREDICT DIRECTEMENT SUR LE CONTROLEUR DU JEU ===== */
+    /* ===== HOOK PARFAIT AIMBOT & AIM-PREDICT (Starblast Trigonometry System) ===== */
     let isMouseRightDown = false;
     let isShiftDown = false;
 
@@ -3160,15 +3160,16 @@
     function computeAimAngle(controlObj) {
         if (!window.modSettings || !window.modSettings.aimbotEnabled) return null;
         
-        // AimBot s'active si l'option est cochée, ou si Clic Droit / Maj est maintenu
+        // Active si l'option est ON dans le menu, ou si Clic Droit / Maj est maintenu
         var shouldAim = window.modSettings.aimbotAlwaysOn || isMouseRightDown || isShiftDown;
         if (!shouldAim) return null;
 
-        var game = controlObj.Ol111 || window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
-        if (!game || !game.IO1OO || !game.IO1OO.lOII1 || !game.I0lO1 || !game.I0lO1.status || !game.I0lO1.status.alive) return null;
+        var game = (controlObj && controlObj.Ol111) || window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
+        var playerShip = (controlObj && controlObj.ship) || (game && game.I0lO1);
+        if (!game || !playerShip || !playerShip.status || !playerShip.status.alive) return null;
 
-        var playerStatus = game.I0lO1.status;
-        var ships = game.IO1OO.lOII1.ships;
+        var playerStatus = playerShip.status;
+        var ships = (game.IO1OO && game.IO1OO.lOII1 && game.IO1OO.lOII1.ships) ? game.IO1OO.lOII1.ships : [];
         if (!ships || !ships.length) return null;
 
         var closestEnemy = null;
@@ -3176,20 +3177,26 @@
 
         for (var i = 0; i < ships.length; i++) {
             var sObj = ships[i];
-            if (!sObj || !sObj.lOOlI || !sObj.lOOlI.status) continue;
-            var st = sObj.lOOlI.status;
+            if (!sObj) continue;
+            var st = (sObj.lOOlI && sObj.lOOlI.status) ? sObj.lOOlI.status : sObj.status;
+            if (!st) continue;
 
+            // Filtrer soi-même, les morts, les invulnérables
             if (st.id === playerStatus.id || !st.alive || st.invulnerable) continue;
+            
+            # Filtrer les alliés (par statut friendly ou par numéro d'équipe team)
             if (st.friendly || (playerStatus.friendly && st.friendly === playerStatus.friendly)) continue;
+            if (playerStatus.team && st.team && playerStatus.team === st.team) continue;
 
             var dx = st.x - playerStatus.x;
             var dy = st.y - playerStatus.y;
 
+            // Gestion de la carte torique (Wrap map boundary Starblast)
             if (game.OI0ll) {
-                if (dx > game.OI0ll / 2) dx -= game.size;
-                if (dx < -game.OI0ll / 2) dx += game.size;
-                if (dy > game.OI0ll / 2) dy -= game.size;
-                if (dy < -game.OI0ll / 2) dy += game.size;
+                if (dx > game.OI0ll) dx -= game.size;
+                if (dx < -game.OI0ll) dx += game.size;
+                if (dy > game.OI0ll) dy -= game.size;
+                if (dy < -game.OI0ll) dy += game.size;
             }
 
             var dist = Math.sqrt(dx * dx + dy * dy);
@@ -3204,31 +3211,34 @@
         var targetX = closestEnemy.dx;
         var targetY = closestEnemy.dy;
 
-        // Cheat 2: Aim-Predict (Anticipation de tir)
+        // Cheat 2: Aim-Predict (Anticipation de trajectoire basée sur la vitesse du tir)
         if (window.modSettings.aimPredictEnabled) {
             var laserSpeed = 110;
-            if (game.I0lO1.instance && game.I0lO1.instance.lasers && game.I0lO1.instance.lasers[0]) {
-                laserSpeed = game.I0lO1.instance.lasers[0].speed || 110;
+            if (playerShip.instance && playerShip.instance.lasers && playerShip.instance.lasers[0]) {
+                laserSpeed = playerShip.instance.lasers[0].speed || 110;
             }
-            var timeToHit = (closestEnemy.dist / laserSpeed) * 0.85;
+            var timeToHit = (closestEnemy.dist / laserSpeed);
             targetX += closestEnemy.vx * timeToHit * 60;
             targetY += closestEnemy.vy * timeToHit * 60;
         }
 
-        var angleRad = Math.atan2(targetY, targetX);
-        var angleDeg = Math.round((-angleRad / Math.PI * 180 + 360) % 360);
+        // Conversion trigonométrique exacte de Starblast: angle = -Math.atan2(dy, dx)
+        var angleRad = -Math.atan2(targetY, targetX);
+        var angleDeg = Math.round((angleRad / (Math.PI / 180) + 360) % 360);
+        while (angleDeg < 0) angleDeg += 360;
 
-        // Mettre à jour la position visuelle du curseur à l'écran sur la cible
+        // Mettre à jour visuellement la position du viseur à l'écran
         if (game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.cursor) {
-            var screenX = 0.5 * game.display.width + 0.25 * game.display.height * Math.cos(-angleDeg / 180 * Math.PI);
-            var screenY = game.display.height * (0.5 + 0.25 * Math.sin(-angleDeg / 180 * Math.PI));
+            var deg2rad = Math.PI / 180;
+            var screenX = 0.5 * game.display.width + 0.25 * game.display.height * Math.cos(-angleDeg * deg2rad);
+            var screenY = game.display.height * (0.5 + 0.25 * Math.sin(-angleDeg * deg2rad));
             game.display.screen.Il10l.cursor.set(screenX, screenY);
         }
 
         return angleDeg;
     }
 
-    // Intercepter O0OlI (gestionnaire des contrôles du joueur) pour appliquer l'AimBot à chaque image de contrôle
+    // Intercepter O0OlI (Gestionnaire des contrôles joueur) pour appliquer l'AimBot
     function hookStarblastControl() {
         if (typeof O0OlI === 'undefined' || O0OlI._aimbotHooked) return;
         O0OlI._aimbotHooked = true;
@@ -3254,7 +3264,7 @@
             return origMouseMove.apply(this, arguments);
         };
     }
-    setInterval(hookStarblastControl, 500);
+    setInterval(hookStarblastControl, 300);
 
     // Zoom fluide molette (FOV)
     window.customZoomMultiplier = 1.0;
