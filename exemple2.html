@@ -3109,7 +3109,8 @@
         aimbotAlwaysOn: true,
         gifMacroEnabled: false,
         lastTypedEmote: 'X',
-        fixedPos1Emote: 'L'
+        fixedPos1Emote: 'L',
+        networkLoggingEnabled: false
     };
 
     var originalRespawnDelay = null;
@@ -3136,6 +3137,175 @@
         }
     }, 200);
 
+    /* ===== NETWORK WS LOGGER & DECODER ===== */
+    window.wsLogs = [];
+    var maxLogs = 15000;
+
+    function bufferToHexArray(buffer) {
+        var view = new DataView(buffer);
+        var hex = [];
+        for (var i = 0; i < buffer.byteLength; i++) {
+            var val = view.getUint8(i).toString(16);
+            if (val.length === 1) val = '0' + val;
+            hex.push(val.toUpperCase());
+        }
+        return hex;
+    }
+
+    function decodePayload(data, direction) {
+        try {
+            if (typeof data === 'string') {
+                return { type: 'JSON', parsed: JSON.parse(data) };
+            }
+
+            if (data instanceof ArrayBuffer || data.buffer instanceof ArrayBuffer) {
+                var buffer = data.buffer || data;
+                var view = new DataView(buffer);
+                if (buffer.byteLength === 0) return { type: 'EMPTY_BINARY' };
+
+                var opcode = view.getUint8(0);
+                var decoded = { 
+                    opcode: opcode, 
+                    rawHex: bufferToHexArray(buffer),
+                    byteLength: buffer.byteLength 
+                };
+
+                if (direction === 'OUT') {
+                    // Les paquets de controle du joueur vers le serveur
+                    if (buffer.byteLength >= 5) {
+                        decoded.type = 'PLAYER_INPUT';
+                        decoded.details = {
+                            // Exemple: boutons, angle, actions binaires
+                            byte1: view.getUint8(1),
+                            byte2: view.getUint8(2),
+                            byte3: view.getUint8(3),
+                            byte4: view.getUint8(4)
+                        };
+                    } else {
+                        decoded.type = 'CLIENT_BINARY_SHORT';
+                    }
+                    return { type: 'BINARY', parsed: decoded };
+                }
+
+                // Opcodes Serveur -> Client (IN)
+                if (opcode === 0 && buffer.byteLength >= 36) {
+                    decoded.type = 'PLAYER_STATE';
+                    decoded.details = {
+                        id: view.getUint8(1),
+                        status: view.getUint8(2),
+                        x: view.getFloat32(16, true),
+                        y: view.getFloat32(20, true),
+                        vx: view.getFloat32(24, true),
+                        vy: view.getFloat32(28, true),
+                        angle: view.getFloat32(32, true)
+                    };
+                } else if (opcode === 100 && buffer.byteLength >= 40) {
+                    decoded.type = 'LASERS_SPAWN';
+                    decoded.details = {
+                        shooterId: view.getUint8(1),
+                        laserCount: (buffer.byteLength - 8) / 32
+                    };
+                } else if (opcode === 111 && buffer.byteLength >= 24) {
+                    decoded.type = 'ASTEROID_STATE';
+                    decoded.details = {
+                        id: view.getUint16(2, true),
+                        size: view.getUint8(1),
+                        x: view.getFloat32(8, true),
+                        y: view.getFloat32(12, true),
+                        vx: view.getFloat32(16, true),
+                        vy: view.getFloat32(20, true)
+                    };
+                } else if (opcode === 200) {
+                    decoded.type = 'SCOREBOARD_RADAR';
+                } else if (opcode === 220 && buffer.byteLength >= 38) {
+                    decoded.type = 'ALIEN_STATE';
+                    decoded.details = {
+                        id: view.getUint16(2, true),
+                        level: view.getUint8(5),
+                        x: view.getFloat32(10, true),
+                        y: view.getFloat32(14, true),
+                        vx: view.getFloat32(18, true),
+                        vy: view.getFloat32(22, true)
+                    };
+                } else {
+                    decoded.type = 'SERVER_BINARY_OTHER';
+                }
+
+                return { type: 'BINARY', parsed: decoded };
+            }
+        } catch (e) {
+            return { type: 'DECODE_ERROR', error: e.message };
+        }
+        return { type: 'UNSUPPORTED' };
+    }
+
+    var OriginalWebSocket = window.WebSocket;
+    window.WebSocket = function(url, protocols) {
+        var ws = new OriginalWebSocket(url, protocols);
+        
+        var originalSend = ws.send;
+        ws.send = function(data) {
+            if (window.modSettings && window.modSettings.networkLoggingEnabled) {
+                var logEntry = {
+                    direction: 'OUT',
+                    timestamp: Date.now(),
+                    decoded: null
+                };
+
+                if (data instanceof Blob) {
+                    var reader = new FileReader();
+                    reader.onload = function() {
+                        logEntry.decoded = decodePayload(reader.result, 'OUT');
+                    };
+                    reader.readAsArrayBuffer(data);
+                } else {
+                    logEntry.decoded = decodePayload(data, 'OUT');
+                }
+
+                if (window.wsLogs.length < maxLogs) window.wsLogs.push(logEntry);
+            }
+            return originalSend.apply(this, arguments);
+        };
+
+        ws.addEventListener('message', function(event) {
+            if (window.modSettings && window.modSettings.networkLoggingEnabled) {
+                var data = event.data;
+                var logEntry = {
+                    direction: 'IN',
+                    timestamp: Date.now(),
+                    decoded: null
+                };
+
+                if (data instanceof Blob) {
+                    var reader = new FileReader();
+                    reader.onload = function() {
+                        logEntry.decoded = decodePayload(reader.result, 'IN');
+                    };
+                    reader.readAsArrayBuffer(data);
+                } else {
+                    logEntry.decoded = decodePayload(data, 'IN');
+                }
+
+                if (window.wsLogs.length < maxLogs) window.wsLogs.push(logEntry);
+            }
+        });
+
+        return ws;
+    };
+    Object.assign(window.WebSocket, OriginalWebSocket);
+    window.WebSocket.prototype = OriginalWebSocket.prototype;
+
+    window.exportNetworkLogs = function() {
+        var dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(window.wsLogs, null, 2));
+        var downloadAnchor = document.createElement('a');
+        downloadAnchor.setAttribute("href", dataStr);
+        downloadAnchor.setAttribute("download", 'starblast_ws_logs_' + Date.now() + '.json');
+        document.body.appendChild(downloadAnchor);
+        downloadAnchor.click();
+        downloadAnchor.remove();
+    };
+
+    /* ===== HOOK AIMBOT & AIM-PREDICT (Compatibilite Userscripts & Injectors) ===== */
     var isMouseRightDown = false;
     var isShiftDown = false;
 
@@ -3491,7 +3661,9 @@
                 ".emote-grid-4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-top: 8px; }" +
                 ".emote-btn { background: rgba(0, 191, 255, 0.12); border: 1px solid rgba(0, 191, 255, 0.3); border-radius: 8px; color: #fff; padding: 8px 4px; font-size: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; }" +
                 ".emote-btn:hover { background: rgba(0, 191, 255, 0.35); border-color: #00d2ff; transform: scale(1.05); }" +
-                ".emote-btn span { font-size: 9px; color: #00d2ff; margin-top: 2px; }";
+                ".emote-btn span { font-size: 9px; color: #00d2ff; margin-top: 2px; }" +
+                ".btn-export { width: 100%; background: #00bfff; border: none; border-radius: 8px; color: white; padding: 8px; font-weight: bold; cursor: pointer; margin-top: 8px; transition: background 0.2s; }" +
+                ".btn-export:hover { background: #0088cc; }";
             document.head.appendChild(style);
 
             var div = document.createElement('div');
@@ -3507,7 +3679,7 @@
                 '        <div class="setting-row">' +
                 '            <div class="setting-info">' +
                 '                <span class="setting-label">AimBot (Auto-Lock Cible)</span>' +
-                '                <span class="setting-desc">Verrouille automatiquement la cible</span>' +
+                '                <span class="setting-desc">Verrouille la cible automatiquement</span>' +
                 '            </div>' +
                 '            <label class="switch">' +
                 '                <input type="checkbox" id="cheat-aimbot">' +
@@ -3531,6 +3703,20 @@
                 '            </div>' +
                 '            <input type="range" min="0" max="3" step="0.1" value="1.0" class="range-slider" id="cheat-aimpredict-mult">' +
                 '        </div>' +
+                '    </div>' +
+                '    <div class="toolbox-section">' +
+                '        <div class="section-title">Network Packet Logger</div>' +
+                '        <div class="setting-row">' +
+                '            <div class="setting-info">' +
+                '                <span class="setting-label">Enregistrer WebSocket</span>' +
+                '                <span class="setting-desc">Capture les paquets entrants & sortants</span>' +
+                '            </div>' +
+                '            <label class="switch">' +
+                '                <input type="checkbox" id="net-log-toggle">' +
+                '                <span class="slider"></span>' +
+                '            </label>' +
+                '        </div>' +
+                '        <button class="btn-export" onclick="window.exportNetworkLogs()">Exporter logs .JSON</button>' +
                 '    </div>' +
                 '    <div class="toolbox-section">' +
                 '        <div class="section-title">Cheats & Modifications</div>' +
@@ -3637,10 +3823,17 @@
             document.getElementById('cheat-aimpredict').addEventListener('change', function(e) {
                 window.modSettings.aimPredictEnabled = e.target.checked;
             });
-            
+
             document.getElementById('cheat-aimpredict-mult').addEventListener('input', function(e) {
                 window.modSettings.aimPredictMult = parseFloat(e.target.value);
                 document.getElementById('predict-mult-val').textContent = e.target.value + 'x';
+            });
+
+            document.getElementById('net-log-toggle').addEventListener('change', function(e) {
+                window.modSettings.networkLoggingEnabled = e.target.checked;
+                if (e.target.checked) {
+                    window.wsLogs = [];
+                }
             });
 
             document.getElementById('cheat-zoom').addEventListener('change', function(e) {
