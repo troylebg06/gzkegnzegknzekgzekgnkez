@@ -3095,7 +3095,6 @@
 
 <script>
 (function() {
-    // S'assurer que gameInstance pointe vers l'instance principale du jeu Ol111
     if (typeof Ol111 !== 'undefined' && !window.gameInstance) {
         window.gameInstance = Ol111;
     }
@@ -3114,7 +3113,6 @@
 
     var originalRespawnDelay = null;
 
-    // Fast Respawn loop handler
     setInterval(function() {
         var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
         if (!game) return;
@@ -3137,7 +3135,6 @@
         }
     }, 200);
 
-    /* ===== HOOK AIMBOT & AIM-PREDICT (Compatibilite Userscripts & Injectors) ===== */
     var isMouseRightDown = false;
     var isShiftDown = false;
 
@@ -3257,7 +3254,6 @@
     }
     setInterval(hookStarblastControl, 300);
 
-    // Zoom fluide molette (FOV)
     window.customZoomMultiplier = 1.0;
     var targetZoomMultiplier = 1.0;
     
@@ -3279,7 +3275,6 @@
     }
     updateSmoothZoom();
 
-    /* ===== Restauration et gestion des emotes custom ===== */
     function ensureCustomEmotes() {
         var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
         var chat = game && game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.chatpanel;
@@ -3290,10 +3285,10 @@
 
         var vocab = chat.Ol111.vocabulary;
         
-        if (!vocab['J']) vocab['J'] = { icon: '░', text: 'Blank' };
-        if (!vocab['U']) vocab['U'] = { icon: '🤡', text: 'Clown' };
-        if (!vocab['I']) vocab['I'] = { icon: '🔥', text: 'Fire' };
-        if (!vocab['V']) vocab['V'] = { icon: '💀', text: 'Skull' };
+        if (!vocab['J']) vocab['J'] = { icon: '\u2591', text: 'Blank' };
+        if (!vocab['U']) vocab['U'] = { icon: '\ud83e\udd21', text: 'Clown' };
+        if (!vocab['I']) vocab['I'] = { icon: '\ud83d\udd25', text: 'Fire' };
+        if (!vocab['V']) vocab['V'] = { icon: '\ud83d\udc80', text: 'Skull' };
     }
     setInterval(ensureCustomEmotes, 1000);
 
@@ -3318,7 +3313,6 @@
         }
     }, true);
 
-    /* ===== Anos Cheat & Macro Toolbox Overlay ===== */
     (function() {
         var gifInterval = null;
         var animationIndex = 0;
@@ -3498,7 +3492,7 @@
                 '        <div class="setting-row">' +
                 '            <div class="setting-info">' +
                 '                <span class="setting-label">AimBot (Auto-Lock Cible)</span>' +
-                '                <span class="setting-desc">Verrouille automatiquement le viseur sur l'ennemi</span>' +
+                '                <span class="setting-desc">Verrouille automatiquement la cible</span>' +
                 '            </div>' +
                 '            <label class="switch">' +
                 '                <input type="checkbox" id="cheat-aimbot">' +
@@ -3507,8 +3501,8 @@
                 '        </div>' +
                 '        <div class="setting-row">' +
                 '            <div class="setting-info">' +
-                '                <span class="setting-label">Aim-Predict (Visée Anticipée)</span>' +
-                '                <span class="setting-desc">Anticipe la trajectoire de l'ennemi selon les lasers</span>' +
+                '                <span class="setting-label">Aim-Predict (Vis\xE9e Anticip\xE9e)</span>' +
+                '                <span class="setting-desc">Anticipe la trajectoire selon les lasers</span>' +
                 '            </div>' +
                 '            <label class="switch">' +
                 '                <input type="checkbox" id="cheat-aimpredict">' +
@@ -3541,7 +3535,7 @@
                 '        <div class="setting-row">' +
                 '            <div class="setting-info">' +
                 '                <span class="setting-label">Fast Respawn</span>' +
-                '                <span class="setting-desc">Activer / Enlever le Fast Respawn</span>' +
+                '                <span class="setting-desc">Activer ou Enlever le Fast Respawn</span>' +
                 '            </div>' +
                 '            <label class="switch">' +
                 '                <input type="checkbox" id="cheat-fastrespawn">' +
@@ -3550,12 +3544,12 @@
                 '        </div>' +
                 '    </div>' +
                 '    <div class="toolbox-section">' +
-                '        <div class="section-title">Émotes Custom Manuelles (4 Colonnes)</div>' +
+                '        <div class="section-title">Emotes Custom (4 Colonnes)</div>' +
                 '        <div class="emote-grid-4">' +
-                '            <button class="emote-btn" onclick="window.sendEmoteDirect('J')">░<span>Blank (J)</span></button>' +
-                '            <button class="emote-btn" onclick="window.sendEmoteDirect('U')">🤡<span>Clown (U)</span></button>' +
-                '            <button class="emote-btn" onclick="window.sendEmoteDirect('I')">🔥<span>Fire (I)</span></button>' +
-                '            <button class="emote-btn" onclick="window.sendEmoteDirect('V')">💀<span>Skull (V)</span></button>' +
+                '            <button class="emote-btn" onclick="window.sendEmoteDirect(\'J\')">\u2591<span>Blank (J)</span></button>' +
+                '            <button class="emote-btn" onclick="window.sendEmoteDirect(\'U\')">\ud83e\udd21<span>Clown (U)</span></button>' +
+                '            <button class="emote-btn" onclick="window.sendEmoteDirect(\'I\')">\ud83d\udd25<span>Fire (I)</span></button>' +
+                '            <button class="emote-btn" onclick="window.sendEmoteDirect(\'V\')">\ud83d\udc80<span>Skull (V)</span></button>' +
                 '        </div>' +
                 '    </div>' +
                 '    <div class="toolbox-section">' +
@@ -3573,26 +3567,26 @@
                 '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
                 '            <div class="setting-label">Preset Animation</div>' +
                 '            <select class="toolbox-select" id="macro-preset">' +
-                '                <option value="salute">Salute — Hello, Yes, GG, No Prob, Bye</option>' +
-                '                <option value="tactic">Tactic — Team, Follow, Attack, Help, Kill</option>' +
-                '                <option value="hype">Hype — GG, Yes, Thanks, No Prob, Hello</option>' +
-                '                <option value="fusion">Fusion (mixed) — GG, Custom, Yes, Custom, Kill</option>' +
-                '                <option value="mode_fixe">Mode 1 — Fixe1, Blank, Clavier/Custom, Blank, Fixe1</option>' +
-                '                <option value="mode_tng">Mode 2 — TOI NON GG (TNG) Défilant (G -> D)</option>' +
+                '                <option value="salute">Salute - Hello, Yes, GG, No Prob, Bye</option>' +
+                '                <option value="tactic">Tactic - Team, Follow, Attack, Help, Kill</option>' +
+                '                <option value="hype">Hype - GG, Yes, Thanks, No Prob, Hello</option>' +
+                '                <option value="fusion">Fusion (mixed) - GG, Custom, Yes, Custom, Kill</option>' +
+                '                <option value="mode_fixe">Mode 1 - Fixe1, Blank, Clavier/Custom, Blank, Fixe1</option>' +
+                '                <option value="mode_tng">Mode 2 - TOI NON GG (TNG) Defilant (G -> D)</option>' +
                 '            </select>' +
                 '        </div>' +
                 '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
                 '            <div class="setting-label">Pos 3 Emote (Mode 1)</div>' +
                 '            <select class="toolbox-select" id="macro-pos3-emote">' +
-                '                <option value="X">X — Thanks (Par défaut / Tape au clavier)</option>' +
-                '                <option value="G">G — GG</option>' +
-                '                <option value="Y">Y — Yes</option>' +
-                '                <option value="L">L — Hello</option>' +
-                '                <option value="S">S — Smile</option>' +
-                '                <option value="K">K — Kill</option>' +
-                '                <option value="H">H — Help</option>' +
-                '                <option value="U">U — Custom Clown 🤡</option>' +
-                '                <option value="V">V — Custom Skull 💀</option>' +
+                '                <option value="X">X - Thanks (Par defaut / Tape au clavier)</option>' +
+                '                <option value="G">G - GG</option>' +
+                '                <option value="Y">Y - Yes</option>' +
+                '                <option value="L">L - Hello</option>' +
+                '                <option value="S">S - Smile</option>' +
+                '                <option value="K">K - Kill</option>' +
+                '                <option value="H">H - Help</option>' +
+                '                <option value="U">U - Custom Clown</option>' +
+                '                <option value="V">V - Custom Skull</option>' +
                 '            </select>' +
                 '        </div>' +
                 '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
@@ -3696,6 +3690,5 @@
     })();
 })();
 </script>
-
 </body>
 </html>
