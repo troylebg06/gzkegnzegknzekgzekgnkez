@@ -3104,8 +3104,9 @@
         fovEnabled: true,
         noobPassEnabled: true,
         fastRespawnEnabled: false,
-        aimbotEnabled: false,       # Cheat 1: AimBot (Auto-Lock)
-        aimPredictEnabled: false,   # Cheat 2: Aim-Predict (Lead Target)
+        aimbotEnabled: false,
+        aimPredictEnabled: false,
+        aimbotAlwaysOn: true, // AimBot actif dès que l'interrupteur est ON
         gifMacroEnabled: false,
         lastTypedEmote: 'X',
         fixedPos1Emote: 'L'
@@ -3136,68 +3137,54 @@
         }
     }, 200);
 
-    /* ===== CHEAT 1 & 2: AIMBOT & AIM-PREDICT (Auto-Aim + Visée Anticipée) ===== */
-    let isAimingActive = false;
+    /* ===== HOOK AIMBOT & AIM-PREDICT DIRECTEMENT SUR LE CONTROLEUR DU JEU ===== */
+    let isMouseRightDown = false;
+    let isShiftDown = false;
 
-    // Active AimBot si le clic droit ou la touche Maj est maintenue, ou si AimBot toggle est activé
     window.addEventListener('mousedown', function(e) {
-        if (e.button === 2 && window.modSettings && window.modSettings.aimbotEnabled) {
-            isAimingActive = true;
-        }
-    });
-
+        if (e.button === 2) isMouseRightDown = true;
+    }, true);
     window.addEventListener('mouseup', function(e) {
-        if (e.button === 2) {
-            isAimingActive = false;
-        }
-    });
-
+        if (e.button === 2) isMouseRightDown = false;
+    }, true);
     window.addEventListener('contextmenu', function(e) {
-        if (window.modSettings && window.modSettings.aimbotEnabled) {
-            e.preventDefault();
-        }
-    });
-
+        if (window.modSettings && window.modSettings.aimbotEnabled) e.preventDefault();
+    }, true);
     window.addEventListener('keydown', function(e) {
-        if (e.key === 'Shift' && window.modSettings && window.modSettings.aimbotEnabled) {
-            isAimingActive = true;
-        }
-    });
-
+        if (e.key === 'Shift') isShiftDown = true;
+    }, true);
     window.addEventListener('keyup', function(e) {
-        if (e.key === 'Shift') {
-            isAimingActive = false;
-        }
-    });
+        if (e.key === 'Shift') isShiftDown = false;
+    }, true);
 
-    function runAimBotLoop() {
-        requestAnimationFrame(runAimBotLoop);
+    function computeAimAngle(controlObj) {
+        if (!window.modSettings || !window.modSettings.aimbotEnabled) return null;
+        
+        // AimBot s'active si l'option est cochée, ou si Clic Droit / Maj est maintenu
+        var shouldAim = window.modSettings.aimbotAlwaysOn || isMouseRightDown || isShiftDown;
+        if (!shouldAim) return null;
 
-        if (!window.modSettings || !window.modSettings.aimbotEnabled) return;
-
-        var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
-        if (!game || !game.IO1OO || !game.IO1OO.lOII1 || !game.I0lO1 || !game.I0lO1.status || !game.I0lO1.status.alive) return;
+        var game = controlObj.Ol111 || window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
+        if (!game || !game.IO1OO || !game.IO1OO.lOII1 || !game.I0lO1 || !game.I0lO1.status || !game.I0lO1.status.alive) return null;
 
         var playerStatus = game.I0lO1.status;
         var ships = game.IO1OO.lOII1.ships;
-        if (!ships || !ships.length) return;
+        if (!ships || !ships.length) return null;
 
         var closestEnemy = null;
         var minDistance = Infinity;
 
         for (var i = 0; i < ships.length; i++) {
-            var target = ships[i];
-            if (!target || !target.lOOlI || !target.lOOlI.status) continue;
-            var st = target.lOOlI.status;
+            var sObj = ships[i];
+            if (!sObj || !sObj.lOOlI || !sObj.lOOlI.status) continue;
+            var st = sObj.lOOlI.status;
 
-            // Ignorer son propre vaisseau, les morts, les invulnérables et les alliés
             if (st.id === playerStatus.id || !st.alive || st.invulnerable) continue;
             if (st.friendly || (playerStatus.friendly && st.friendly === playerStatus.friendly)) continue;
 
             var dx = st.x - playerStatus.x;
             var dy = st.y - playerStatus.y;
 
-            // Gestion de la carte torique (wrap map boundary)
             if (game.OI0ll) {
                 if (dx > game.OI0ll / 2) dx -= game.size;
                 if (dx < -game.OI0ll / 2) dx += game.size;
@@ -3208,38 +3195,66 @@
             var dist = Math.sqrt(dx * dx + dy * dy);
             if (dist < minDistance) {
                 minDistance = dist;
-                closestEnemy = { target: target, dx: dx, dy: dy, dist: dist, vx: st.O0l1l || 0, vy: st.lIOIl || 0 };
+                closestEnemy = { target: st, dx: dx, dy: dy, dist: dist, vx: st.O0l1l || 0, vy: st.lIOIl || 0 };
             }
         }
 
-        if (!closestEnemy) return;
+        if (!closestEnemy) return null;
 
         var targetX = closestEnemy.dx;
         var targetY = closestEnemy.dy;
 
-        // Cheat 2: Aim-Predict (Anticipation de la trajectoire en fonction de la vitesse des lasers)
+        // Cheat 2: Aim-Predict (Anticipation de tir)
         if (window.modSettings.aimPredictEnabled) {
-            var laserSpeed = 110; // Vitesse moyenne des tirs
+            var laserSpeed = 110;
             if (game.I0lO1.instance && game.I0lO1.instance.lasers && game.I0lO1.instance.lasers[0]) {
                 laserSpeed = game.I0lO1.instance.lasers[0].speed || 110;
             }
-
             var timeToHit = (closestEnemy.dist / laserSpeed) * 0.85;
             targetX += closestEnemy.vx * timeToHit * 60;
             targetY += closestEnemy.vy * timeToHit * 60;
         }
 
-        // Calcul de l'angle en degrés pour Starblast (0..360)
         var angleRad = Math.atan2(targetY, targetX);
         var angleDeg = Math.round((-angleRad / Math.PI * 180 + 360) % 360);
 
-        // Appliquer l'angle au vaisseau du joueur
-        if (game.I0lO1.l11II) {
-            game.I0lO1.l11II.angle = angleDeg;
-            game.I0lO1.O10OI();
+        // Mettre à jour la position visuelle du curseur à l'écran sur la cible
+        if (game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.cursor) {
+            var screenX = 0.5 * game.display.width + 0.25 * game.display.height * Math.cos(-angleDeg / 180 * Math.PI);
+            var screenY = game.display.height * (0.5 + 0.25 * Math.sin(-angleDeg / 180 * Math.PI));
+            game.display.screen.Il10l.cursor.set(screenX, screenY);
         }
+
+        return angleDeg;
     }
-    runAimBotLoop();
+
+    // Intercepter O0OlI (gestionnaire des contrôles du joueur) pour appliquer l'AimBot à chaque image de contrôle
+    function hookStarblastControl() {
+        if (typeof O0OlI === 'undefined' || O0OlI._aimbotHooked) return;
+        O0OlI._aimbotHooked = true;
+
+        var origI0I00 = O0OlI.prototype.I0I00;
+        O0OlI.prototype.I0I00 = function() {
+            var targetAngle = computeAimAngle(this);
+            if (targetAngle !== null && this.ship && this.ship.l11II) {
+                this.ship.l11II.angle = targetAngle;
+                this.ship.O10OI();
+            }
+            return origI0I00.apply(this, arguments);
+        };
+
+        var origMouseMove = O0OlI.prototype.mouseMove;
+        O0OlI.prototype.mouseMove = function(t, e, i) {
+            var targetAngle = computeAimAngle(this);
+            if (targetAngle !== null && this.ship && this.ship.l11II) {
+                this.ship.l11II.angle = targetAngle;
+                this.ship.O10OI();
+                return true;
+            }
+            return origMouseMove.apply(this, arguments);
+        };
+    }
+    setInterval(hookStarblastControl, 500);
 
     // Zoom fluide molette (FOV)
     window.customZoomMultiplier = 1.0;
@@ -3625,7 +3640,7 @@
                         <div class="setting-row">
                             <div class="setting-info">
                                 <span class="setting-label">AimBot (Auto-Lock Cible)</span>
-                                <span class="setting-desc">Verrouille le viseur sur l'ennemi le plus proche</span>
+                                <span class="setting-desc">Verrouille automatiquement le viseur sur l'ennemi</span>
                             </div>
                             <label class="switch">
                                 <input type="checkbox" id="cheat-aimbot">
@@ -3636,7 +3651,7 @@
                         <div class="setting-row">
                             <div class="setting-info">
                                 <span class="setting-label">Aim-Predict (Visée Anticipée)</span>
-                                <span class="setting-desc">Anticipe la trajectoire de l'ennemi selon la vitesse des lasers</span>
+                                <span class="setting-desc">Anticipe la trajectoire de l'ennemi selon les lasers</span>
                             </div>
                             <label class="switch">
                                 <input type="checkbox" id="cheat-aimpredict">
