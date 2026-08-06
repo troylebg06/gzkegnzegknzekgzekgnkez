@@ -3712,7 +3712,7 @@
                 var dist = dx * dx + dy * dy;
                 if (dist < minDist) {
                     minDist = dist;
-                    closestEnemy = { dx: dx, dy: dy, vx: st.vx || 0, vy: st.vy || 0, st: st };
+                    closestEnemy = { dx: dx, dy: dy, vx: st.vx || 0, vy: st.vy || 0, st: st, wx: sX, wy: sY };
                 }
             }
 
@@ -3739,30 +3739,114 @@
 
             return {
                 angle: angleDeg,
-                distance: distance
+                distance: distance,
+                // Position du point visé en monde (avec lead prédit déjà inclus dans dx/dy),
+                // construite comme myPos + (déplacement relatif le plus court).
+                targetX: myX + dx,
+                targetY: myY + dy
             };
         }
 
-        // Intercept WebSocket packets (angle + fire/thrust flags)
+        // Intercept WebSocket packets (angle + fire/thrust flags).
+        // Le moteur envoie le contrôle via this.socket.send(i) où i est un NOMBRE entier
+        // (format : angle 0-359 + flags 4096 thrust / 8192 fire / ...). Il envoie aussi
+        // des strings JSON et "ping". On ne touche que le nombre d'angle/flags.
         var originalSend = WebSocket.prototype.send;
         WebSocket.prototype.send = function(data) {
-            if (typeof data === 'string' && /^\d+$/.test(data)) {
-                var val = parseInt(data);
-                if (window.modSettings && window.modSettings.aimbotEnabled) {
-                    var targetInfo = getAimTargetInfo();
-                    if (targetInfo !== null) {
-                        var flags = val & ~4095; // Supprime l'angle d'origine (bits bas)
-                        // Application des actions automatiques (comme la version qui fonctionne)
-                        flags |= 8192;                                  // fire toujours
-                        if (targetInfo.distance > 120) flags |= 4096;   // thrust si loin
-                        else flags &= ~4096;
-                        val = (flags & ~4095) + (Math.round(targetInfo.angle) % 360);
-                        data = val.toString();
-                    }
+            var isNumeric = (typeof data === 'number' && isFinite(data)) ||
+                            (typeof data === 'string' && /^\d+$/.test(data));
+            if (isNumeric && window.modSettings && window.modSettings.aimbotEnabled) {
+                var val = (typeof data === 'number') ? data : parseInt(data, 10);
+                var targetInfo = getAimTargetInfo();
+                if (targetInfo !== null) {
+                    val = val & ~4095;                                   // efface angle (bits bas) + flags autogérés
+                    val |= 8192;                                         // fire toujours
+                    if (targetInfo.distance > 120) val |= 4096;          // thrust si loin
+                    else val &= ~4096;
+                    val = (val & ~4095) + (Math.round(targetInfo.angle) % 360); // pose l'angle
+                    // Préserver le type d'origine (number ou string) pour ne pas rompre le socket
+                    data = (typeof data === 'number') ? val : val.toString();
                 }
             }
             return originalSend.apply(this, arguments);
         };
+
+        // ===== AIDE À LA VISÉE PASSIVE (overlay Canvas 2D) =====
+        // Fonctionne SANS l'aimbot : il suffit de cocher "Aim-Predict". Dessine une ligne
+        // depuis le vaisseau vers le point visé (cible la plus proche, lead prédit inclus).
+        // Sûr : une simple overlay pointer-events:none ; ne touche ni au moteur ni au mod.
+        function setupAimAssist() {
+            var overlay = document.getElementById('anos-aimline');
+            if (!overlay) {
+                overlay = document.createElement('canvas');
+                overlay.id = 'anos-aimline';
+                overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; ' +
+                    'pointer-events:none; z-index:2147483646;';
+                document.body.appendChild(overlay);
+            }
+            var ctx = overlay.getContext('2d');
+
+            function projectToworld(tx, ty) {
+                var game = window.gameInstance;
+                if (!game || !game.OlI1I || typeof THREE === 'undefined') return null;
+                var v = new THREE.Vector3(tx, ty, 0);
+                // Caméra orthographique du jeu ; projette (ndv -1..1) en pixel écran
+                try { v.project(game.OlI1I); } catch (e) { return null; }
+                var canvas = overlay;
+                var w = canvas.clientWidth || window.innerWidth;
+                var h = canvas.clientHeight || window.innerHeight;
+                var sx = (v.x + 1) / 2 * w;
+                var sy = (1 - v.y) / 2 * h;   // flip Y (canvas CSS top-left)
+                if (!isFinite(sx) || !isFinite(sy)) return null;
+                return { x: sx, y: sy };
+            }
+
+            function drawAimLine() {
+                var game = window.gameInstance;
+                var enabled = window.modSettings && window.modSettings.aimPredictEnabled;
+                if (!enabled || !game || !game.I0lO1 || !game.I0lO1.status || !game.I0lO1.status.alive ||
+                    !game.OlI1I || typeof THREE === 'undefined') {
+                    ctx.clearRect(0, 0, overlay.width, overlay.height);
+                    requestAnimationFrame(drawAimLine);
+                    return;
+                }
+                // S'assurer que le canvas physiquement mis à l'échelle suit la taille du jeu
+                var cw = overlay.clientWidth || window.innerWidth;
+                var ch = overlay.clientHeight || window.innerHeight;
+                if (overlay.width !== cw || overlay.height !== ch) {
+                    overlay.width = cw;
+                    overlay.height = ch;
+                }
+
+                var info = getAimTargetInfo();
+                var p1 = projectToworld(game.I0lO1.status.x, game.I0lO1.status.y);
+                var p2 = (info) ? projectToworld(info.targetX, info.targetY) : null;
+
+                ctx.clearRect(0, 0, overlay.width, overlay.height);
+                if (!p1 || !p2) { requestAnimationFrame(drawAimLine); return; }
+
+                ctx.beginPath();
+                ctx.moveTo(p1.x, p1.y);
+                ctx.lineTo(p2.x, p2.y);
+                ctx.strokeStyle = 'rgba(0, 210, 255, 0.85)';
+                ctx.lineWidth = 2;
+                ctx.shadowColor = 'rgba(0, 210, 255, 0.5)';
+                ctx.shadowBlur = 6;
+                ctx.stroke();
+                ctx.shadowBlur = 0;
+
+                // Petit réticule sur le point visé
+                ctx.beginPath();
+                ctx.arc(p2.x, p2.y, 5, 0, Math.PI * 2);
+                ctx.strokeStyle = 'rgba(255, 80, 80, 0.9)';
+                ctx.lineWidth = 2;
+                ctx.stroke();
+
+                requestAnimationFrame(drawAimLine);
+            }
+            requestAnimationFrame(drawAimLine);
+        }
+        setupAimAssist();
     })();
 })();
 </script>
