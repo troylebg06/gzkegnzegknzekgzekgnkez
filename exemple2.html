@@ -3651,67 +3651,63 @@
             }
         }, true);
 
-        // --- AIMBOT LOGIC (Corrigé) : interception de WebSocket.prototype.send ---
-        // Méthode fiable et transparente pour le moteur : le jeu envoie son contrôle via des
-        // paquets numériques (angle + flags fire/thrust). On intercepte WebSocket.prototype.send,
-        // on écrase l'angle d'origine (bits bas) et on pose fire/thrust (bits autos). Le joueur
-        // garde le contrôle total, rien ne force l'angle côté moteur (ship.x.angle / O10OI() inutiles).
+                // ===== AIMBOT & AIM-ASSIST (réparé) — hook sur le contrôleur natif O0OlI =====
+        // Méthode fiable : on hooke O0OlI.prototype.I0I00 / mouseMove (la boucle de contrôle
+        // native du vaisseau) et on force ship.l11II.angle au bon moment, AVANT que la boucle
+        // ne l'envoie. On applique aussi les améliorations de gameplay extraites de bot.js :
+        // ciblage prioritaire, évitement d'astéroïdes (steering), anti-tir-ami, burst mode.
+        var isMouseRightDown = false;
+        var isShiftDown = false;
+        window.addEventListener('mousedown', function(e) { if (e.button === 2) isMouseRightDown = true; }, true);
+        window.addEventListener('mouseup', function(e) { if (e.button === 2) isMouseRightDown = false; }, true);
+        window.addEventListener('contextmenu', function(e) {
+            if (window.modSettings && window.modSettings.aimbotEnabled) e.preventDefault();
+        }, true);
+        window.addEventListener('keydown', function(e) { if (e.key === 'Shift') isShiftDown = true; }, true);
+        window.addEventListener('keyup', function(e) { if (e.key === 'Shift') isShiftDown = false; }, true);
+
+        // Calcul de la cible + angle de tir. Retourne { angle, targetX, targetY, distance }
+        // ou null. Intègre : ciblage prioritaire (ennemi proche, puis astéroïde), aim-predict
+        // (lead), évitement d'astéroïdes (steering), anti-tir-ami.
+        var BULLET_SPEED = 14; // vitesse de tir de référence (comme bot.js)
+
         function getAimTargetInfo() {
             var game = window.gameInstance;
-            if (!game || !game.I0lO1 || !game.IO1OO || !game.IO1OO.lOII1) return null;
-            var myShip = game.I0lO1;
-            var myStatus = myShip.status;
-            if (!myStatus || !myStatus.alive) return null;
+            if (!game) return null;
+            var playerShip = game.I0lO1;
+            var playerStatus = (playerShip && playerShip.status) ? playerShip.status : null;
+            if (!playerStatus || !playerStatus.alive) return null;
 
-            var enemies = game.IO1OO.lOII1.OI0I0;
-            if (!enemies) return null;
+            var world = game.IO1OO && game.IO1OO.lOII1;
+            if (!world) return null;
+            var ships = world.ships || [];
+            var asteroids = (game.IO1OO && game.IO1OO.OOIII && game.IO1OO.OOIII.O0l0O) ? game.IO1OO.OOIII.O0l0O : null;
 
-            var myX = myStatus.x;
-            var myY = myStatus.y;
-            var myTeam = myStatus.team;
-            var myId = myStatus.id;
-            var myShipRef = myShip; // référence objet pour filtrage fiable
+            var mapSize = (game.OI0ll) ? (game.size || game.OI0ll * 2) : 800;
+            var myTeam = playerStatus.team;
 
-            // Logger le plus proche toutes les 120 frames
-            var _targetLog = 0;
-
-            var mapSize = 800;
-            if (game.OI0ll) {
-                mapSize = game.size || game.OI0ll * 2;
-            } else if (game.mode && game.mode.options) {
-                mapSize = (game.mode.options.map_size * 10) || 800;
-            }
-
-            var closestEnemy = null;
+            // --- 1. Sélection de la cible (ennemi, puis astéroïde) ---
+            var best = null;   // { dx, dy, dist, vx, vy, isEnemy }
+            var bestIsEnemy = false;
             var minDist = Infinity;
 
-            for (var id in enemies) {
-                if (!enemies.hasOwnProperty(id)) continue;
-                var wrapper = enemies[id];
-                if (!wrapper || !wrapper.lOOlI) continue;
-                var st = wrapper.lOOlI.status;
+            for (var i = 0; i < ships.length; i++) {
+                var sObj = ships[i];
+                if (!sObj) continue;
+                var st = (sObj.lOOlI && sObj.lOOlI.status) ? sObj.lOOlI.status : null;
                 if (!st) continue;
 
-                // Ignorer son propre vaisseau (par référence objet + par ID + par position identique)
-                if (wrapper.lOOlI === myShipRef) continue;
-                if (st.id !== undefined && myId !== undefined && st.id === myId) continue;
-                if (st.x === myX && st.y === myY) continue;
-
-                // Ignorer les morts, les invulnérables
+                // Filtrer soi-même, morts, invulnérables
+                if (st.id !== undefined && playerStatus.id !== undefined && st.id === playerStatus.id) continue;
                 if (!st.alive) continue;
                 if (st.invulnerable) continue;
 
-                // Ignorer les alliés (même équipe)
+                // Filtrer alliés (friendly / team)
+                if (st.friendly || (playerStatus.friendly && st.friendly === playerStatus.friendly)) continue;
                 if (myTeam !== undefined && st.team !== undefined && st.team === myTeam) continue;
 
-                var sX = st.x;
-                var sY = st.y;
-                if (sX === undefined || sY === undefined) continue;
-
-                var dx = sX - myX;
-                var dy = sY - myY;
-
-                // Carte torique (wrap)
+                var dx = st.x - playerStatus.x;
+                var dy = st.y - playerStatus.y;
                 dx = ((dx % mapSize) + mapSize) % mapSize;
                 if (dx > mapSize / 2) dx -= mapSize;
                 dy = ((dy % mapSize) + mapSize) % mapSize;
@@ -3720,84 +3716,126 @@
                 var dist = dx * dx + dy * dy;
                 if (dist < minDist) {
                     minDist = dist;
-                    closestEnemy = { dx: dx, dy: dy, vx: st.vx || 0, vy: st.vy || 0, st: st, wx: sX, wy: sY };
+                    best = { dx: dx, dy: dy, vx: st.O0l1l || 0, vy: st.lIOIl || 0 };
+                    bestIsEnemy = true;
                 }
             }
 
-            if (!closestEnemy) {
-                return null;
-            }
-
-            // Log périodique
-            if (++_targetLog % 120 === 0) {
-                var st = closestEnemy.st;
-                console.log('[Target] id=' + (st.id || '?') + ' dist=' + Math.round(closestEnemy.dx) +
-                    ',' + Math.round(closestEnemy.dy) + ' alive=' + st.alive +
-                    ' team=' + st.team + ' myTeam=' + myTeam);
-            }
-
-            if (!closestEnemy) return null;
-
-            var dx = closestEnemy.dx;
-            var dy = closestEnemy.dy;
-            var distance = Math.sqrt(dx * dx + dy * dy);
-
-            // Aim-Predict : anticiper la trajectoire (option)
-            if (window.modSettings && window.modSettings.aimPredictEnabled) {
-                var bulletSpeed = 110;
-                if (myShip.instance && myShip.instance.lasers && myShip.instance.lasers[0]) {
-                    bulletSpeed = myShip.instance.lasers[0].speed || 110;
+            // Astéroïdes (minage) si pas d'ennemi proche
+            if (!best && asteroids) {
+                for (var aid in asteroids) {
+                    if (!asteroids.hasOwnProperty(aid)) continue;
+                    var a = asteroids[aid];
+                    // a peut être un objet { x, y, size, on } 
+                    var ax = a.x, ay = a.y, aSize = a.size || 15;
+                    if (typeof ax === 'undefined' || typeof ay === 'undefined') continue;
+                    var adx = ax - playerStatus.x;
+                    var ady = ay - playerStatus.y;
+                    adx = ((adx % mapSize) + mapSize) % mapSize;
+                    if (adx > mapSize / 2) adx -= mapSize;
+                    ady = ((ady % mapSize) + mapSize) % mapSize;
+                    if (ady > mapSize / 2) ady -= mapSize;
+                    var ad = adx * adx + ady * ady;
+                    if (ad < minDist) {
+                        minDist = ad;
+                        best = { dx: adx, dy: ady, vx: 0, vy: 0 };
+                        bestIsEnemy = false;
+                    }
                 }
-                var travelTime = (distance / bulletSpeed) * 0.85;
-                dx += closestEnemy.vx * travelTime * 60;
-                dy += closestEnemy.vy * travelTime * 60;
             }
 
-            // Angle Starblast : 0..360, 0 = droite, croît dans le sens horaire (cos/sin écran).
-            // Le contrôle natif utilise angle = -Math.atan2(dy, dx), converti en degrés.
-            var angleDeg = Math.round((-Math.atan2(dy, dx) / Math.PI * 180 + 360) % 360);
+            if (!best) return null;
+
+            var distance = Math.sqrt(best.dx * best.dx + best.dy * best.dy);
+            var targetDx = best.dx;
+            var targetDy = best.dy;
+
+            // --- 2. Aim-predict (lead) si ennemi mobile ---
+            if (bestIsEnemy && distance > 10) {
+                var travelTime = distance / BULLET_SPEED;
+                targetDx += best.vx * travelTime;
+                targetDy += best.vy * travelTime;
+            }
+
+            // --- 3. Évitement d'astéroïdes (steering behavior) ---
+            var avoidX = 0, avoidY = 0;
+            var safetyMargin = 65;
+            if (asteroids) {
+                for (var bid in asteroids) {
+                    if (!asteroids.hasOwnProperty(bid)) continue;
+                    var b = asteroids[bid];
+                    var bx = b.x, by = b.y, bSize = b.size || 15;
+                    if (typeof bx === 'undefined' || typeof by === 'undefined') continue;
+                    var odx = bx - playerStatus.x;
+                    var ody = by - playerStatus.y;
+                    odx = ((odx % mapSize) + mapSize) % mapSize;
+                    if (odx > mapSize / 2) odx -= mapSize;
+                    ody = ((ody % mapSize) + mapSize) % mapSize;
+                    if (ody > mapSize / 2) ody -= mapSize;
+                    var od = Math.sqrt(odx * odx + ody * ody);
+                    var dangerDist = bSize * 0.4 + safetyMargin;
+                    if (od < dangerDist && od > 0) {
+                        var force = (dangerDist - od) / dangerDist;
+                        avoidX -= (odx / od) * force * 1.8;
+                        avoidY -= (ody / od) * force * 1.8;
+                    }
+                }
+            }
+
+            var finalDx = targetDx;
+            var finalDy = targetDy;
+            if (distance > 0) {
+                finalDx = (targetDx / distance) + avoidX;
+                finalDy = (targetDy / distance) + avoidY;
+            }
+
+            // Angle Starblast : 0..360, 0 = droite, sens horaire
+            var angleRad = Math.atan2(finalDy, finalDx);
+            var angleDeg = Math.round((-angleRad / Math.PI * 180 + 360) % 360);
 
             return {
                 angle: angleDeg,
                 distance: distance,
-                // Position du point visé en monde (avec lead prédit déjà inclus dans dx/dy),
-                // construite comme myPos + (déplacement relatif le plus court).
-                targetX: myX + dx,
-                targetY: myY + dy
+                isEnemy: bestIsEnemy,
+                targetX: playerStatus.x + best.dx,  // position monde de la cible (pour l'overlay)
+                targetY: playerStatus.y + best.dy
             };
         }
 
-        // Intercept WebSocket packets (angle + fire/thrust flags).
-        // Le moteur envoie le contrôle via this.socket.send(i) où i est un NOMBRE entier
-        // (format : angle 0-359 sur 9 bits + flags 4096 thrust / 8192 fire / ...). Il envoie
-        // aussi des strings JSON et "ping". On ne touche QUE le champ angle : le joueur garde
-        // le contrôle du thrust et du feu, l'aimbot ne fait que viser (pas de tir/accél auto).
-        var originalSend = WebSocket.prototype.send;
-        var _aimbotLog = 0;
-        WebSocket.prototype.send = function(data) {
-            var isNumeric = (typeof data === 'number' && isFinite(data)) ||
-                            (typeof data === 'string' && /^\d+$/.test(data));
-            if (isNumeric && window.modSettings && window.modSettings.aimbotEnabled) {
-                var val = (typeof data === 'number') ? data : parseInt(data, 10);
-                var oldFlags = val & ~0x1FF;
-                var oldAngle = val & 0x1FF;
-                var targetInfo = getAimTargetInfo();
-                if (targetInfo !== null) {
-                    var ang = ((Math.round(targetInfo.angle) % 360) + 360) % 360;
-                    val = oldFlags + ang;
-                    // Log toutes les 60 frames pour débugger
-                    if (++_aimbotLog % 60 === 0) {
-                        console.log('[Aimbot] oldAngle=' + oldAngle + ' newAngle=' + ang +
-                            ' flags=' + oldFlags + ' dist=' + Math.round(targetInfo.distance));
-                    }
-                    data = (typeof data === 'number') ? val : val.toString();
-                }
-            }
-            // Utiliser call() pour garantir que data modifié est bien envoyé
-            return originalSend.call(this, data);
-        };
+        // Hook le contrôleur natif du jeu pour forcer l'angle au bon moment
+        function hookStarblastControl() {
+            if (typeof O0OlI === 'undefined' || O0OlI.__aimbotHooked) return;
+            O0OlI.__aimbotHooked = true;
 
-        // ===== AIDE À LA VISÉE PASSIVE (overlay Canvas 2D) =====
+            var origI0I00 = O0OlI.prototype.I0I00;
+            O0OlI.prototype.I0I00 = function() {
+                if (this.ship && this.ship.l11II && window.modSettings && window.modSettings.aimbotEnabled) {
+                    var info = getAimTargetInfo();
+                    if (info !== null) {
+                        this.ship.l11II.angle = info.angle;
+                        this.ship.O10OI();
+                    }
+                }
+                return origI0I00.apply(this, arguments);
+            };
+
+            var origMouseMove = O0OlI.prototype.mouseMove;
+            O0OlI.prototype.mouseMove = function(t, e, i) {
+                if (this.ship && this.ship.l11II && window.modSettings && window.modSettings.aimbotEnabled) {
+                    var info = getAimTargetInfo();
+                    if (info !== null) {
+                        this.ship.l11II.angle = info.angle;
+                        this.ship.O10OI();
+                        return true;
+                    }
+                }
+                return origMouseMove.apply(this, arguments);
+            };
+        }
+        setInterval(hookStarblastControl, 500);
+
+
+// ===== AIDE À LA VISÉE PASSIVE (overlay Canvas 2D) =====
         // Fonctionne SANS l'aimbot : il suffit de cocher "Aim-Predict". Dessine une ligne
         // depuis le vaisseau vers le point visé (cible la plus proche, lead prédit inclus).
         // Sûr : une simple overlay pointer-events:none ; ne touche ni au moteur ni au mod.
