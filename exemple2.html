@@ -3670,6 +3670,10 @@
             var myY = myStatus.y;
             var myTeam = myStatus.team;
             var myId = myStatus.id;
+            var myShipRef = myShip; // référence objet pour filtrage fiable
+
+            // Logger le plus proche toutes les 120 frames
+            var _targetLog = 0;
 
             var mapSize = 800;
             if (game.OI0ll) {
@@ -3688,8 +3692,12 @@
                 var st = wrapper.lOOlI.status;
                 if (!st) continue;
 
-                // Ignorer soi-même, les morts, les invulnérables
-                if (st.id !== undefined && st.id === myId) continue;
+                // Ignorer son propre vaisseau (par référence objet + par ID + par position identique)
+                if (wrapper.lOOlI === myShipRef) continue;
+                if (st.id !== undefined && myId !== undefined && st.id === myId) continue;
+                if (st.x === myX && st.y === myY) continue;
+
+                // Ignorer les morts, les invulnérables
                 if (!st.alive) continue;
                 if (st.invulnerable) continue;
 
@@ -3714,6 +3722,18 @@
                     minDist = dist;
                     closestEnemy = { dx: dx, dy: dy, vx: st.vx || 0, vy: st.vy || 0, st: st, wx: sX, wy: sY };
                 }
+            }
+
+            if (!closestEnemy) {
+                return null;
+            }
+
+            // Log périodique
+            if (++_targetLog % 120 === 0) {
+                var st = closestEnemy.st;
+                console.log('[Target] id=' + (st.id || '?') + ' dist=' + Math.round(closestEnemy.dx) +
+                    ',' + Math.round(closestEnemy.dy) + ' alive=' + st.alive +
+                    ' team=' + st.team + ' myTeam=' + myTeam);
             }
 
             if (!closestEnemy) return null;
