@@ -3681,7 +3681,6 @@
             var world = game.IO1OO && game.IO1OO.lOII1;
             if (!world) return null;
             var ships = world.ships || [];
-            var asteroids = (game.IO1OO && game.IO1OO.OOIII && game.IO1OO.OOIII.O0l0O) ? game.IO1OO.OOIII.O0l0O : null;
 
             var mapSize = (game.OI0ll) ? (game.size || game.OI0ll * 2) : 800;
             var myTeam = playerStatus.team;
@@ -3721,30 +3720,6 @@
                 }
             }
 
-            // Astéroïdes (minage) si pas d'ennemi proche
-            if (!best && asteroids) {
-                for (var aid in asteroids) {
-                    if (!asteroids.hasOwnProperty(aid)) continue;
-                    var a = asteroids[aid];
-                    // a peut être un objet { x, y, size, on } — ne traiter que les actifs
-                    if (!a || a.on === false) continue;
-                    var ax = a.x, ay = a.y, aSize = a.size || 15;
-                    if (typeof ax === 'undefined' || typeof ay === 'undefined') continue;
-                    var adx = ax - playerStatus.x;
-                    var ady = ay - playerStatus.y;
-                    adx = ((adx % mapSize) + mapSize) % mapSize;
-                    if (adx > mapSize / 2) adx -= mapSize;
-                    ady = ((ady % mapSize) + mapSize) % mapSize;
-                    if (ady > mapSize / 2) ady -= mapSize;
-                    var ad = adx * adx + ady * ady;
-                    if (ad < minDist) {
-                        minDist = ad;
-                        best = { dx: adx, dy: ady, vx: 0, vy: 0 };
-                        bestIsEnemy = false;
-                    }
-                }
-            }
-
             if (!best) return null;
 
             var distance = Math.sqrt(best.dx * best.dx + best.dy * best.dy);
@@ -3758,38 +3733,11 @@
                 targetDy += best.vy * travelTime;
             }
 
-            // --- 3. Évitement d'astéroïdes (steering behavior) ---
-            var avoidX = 0, avoidY = 0;
-            var safetyMargin = 65;
-            if (asteroids) {
-                for (var bid in asteroids) {
-                    if (!asteroids.hasOwnProperty(bid)) continue;
-                    var b = asteroids[bid];
-                    if (!b || b.on === false) continue;
-                    var bx = b.x, by = b.y, bSize = b.size || 15;
-                    if (typeof bx === 'undefined' || typeof by === 'undefined') continue;
-                    var odx = bx - playerStatus.x;
-                    var ody = by - playerStatus.y;
-                    odx = ((odx % mapSize) + mapSize) % mapSize;
-                    if (odx > mapSize / 2) odx -= mapSize;
-                    ody = ((ody % mapSize) + mapSize) % mapSize;
-                    if (ody > mapSize / 2) ody -= mapSize;
-                    var od = Math.sqrt(odx * odx + ody * ody);
-                    var dangerDist = bSize * 0.4 + safetyMargin;
-                    if (od < dangerDist && od > 0) {
-                        var force = (dangerDist - od) / dangerDist;
-                        avoidX -= (odx / od) * force * 1.8;
-                        avoidY -= (ody / od) * force * 1.8;
-                    }
-                }
-            }
+            // (L'évitement d'astéroïdes nécessite une structure moteur complexe ; désactivé
+            // pour fiabilité — visée directe sur la cible.)
 
             var finalDx = targetDx;
             var finalDy = targetDy;
-            if (distance > 0) {
-                finalDx = (targetDx / distance) + avoidX;
-                finalDy = (targetDy / distance) + avoidY;
-            }
 
             // Angle Starblast : 0..360, 0 = droite, sens horaire
             var angleRad = Math.atan2(finalDy, finalDx);
