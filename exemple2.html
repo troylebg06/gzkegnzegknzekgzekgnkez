@@ -3103,7 +3103,8 @@
         fovEnabled: true,
         noobPassEnabled: true,
         gifMacroEnabled: false,
-        aimbotEnabled: false
+        aimbotEnabled: false,
+        aimPredictEnabled: false
     };
 
     var originalRespawnDelay = null;
@@ -3308,8 +3309,8 @@
             style.innerHTML = "" +
                 "#anos-toolbox {" +
                 "    position: fixed;" +
+                "    left: auto;" +
                 "    top: 60px;" +
-                "    right: 20px;" +
                 "    width: 340px;" +
                 "    background: rgba(10, 25, 45, 0.88);" +
                 "    backdrop-filter: blur(12px);" +
@@ -3321,15 +3322,16 @@
                 "    font-family: sans-serif;" +
                 "    z-index: 999999;" +
                 "    user-select: none;" +
+                "    -webkit-user-select: none;" +
                 "    display: none;" +
                 "    flex-direction: column;" +
                 "    overflow: hidden;" +
-                "    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);" +
-                "    transform: translateY(-10px);" +
+                "    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);" +
                 "    opacity: 0;" +
                 "}" +
                 "#anos-toolbox.visible { display: flex; transform: translateY(0); opacity: 1; }" +
-                ".toolbox-header { padding: 14px 18px; background: rgba(0, 191, 255, 0.1); border-bottom: 1px solid rgba(0, 191, 255, 0.2); display: flex; justify-content: space-between; align-items: center; }" +
+                ".toolbox-header { padding: 14px 18px; background: rgba(0, 191, 255, 0.1); border-bottom: 1px solid rgba(0, 191, 255, 0.2); display: flex; justify-content: space-between; align-items: center; cursor: move; }" +
+                ".toolbox-header .drag-handle { margin-right: 8px; color: rgba(0, 191, 255, 0.5); font-size: 13px; }" +
                 ".toolbox-header h3 { margin: 0; font-weight: 600; font-size: 15px; letter-spacing: 0.5px; color: #00d2ff; text-shadow: 0 0 10px rgba(0, 210, 255, 0.3); }" +
                 ".toolbox-header .close-btn { cursor: pointer; font-size: 18px; color: #aaa; transition: color 0.2s; }" +
                 ".toolbox-header .close-btn:hover { color: #ff4d4d; }" +
@@ -3359,8 +3361,11 @@
             var div = document.createElement('div');
             div.id = 'anos-toolbox';
             div.innerHTML = '' +
-                '<div class="toolbox-header">' +
-                '    <h3>Anos Cheat & Macro Panel</h3>' +
+                '<div class="toolbox-header" id="toolbox-header">' +
+                '    <span class="drag-handle" style="flex:1; display:flex; align-items:center;">' +
+                '        <span style="margin-right:8px; opacity:0.6;">&#9776;</span>' +
+                '        <h3>Anos Cheat &amp; Macro Panel</h3>' +
+                '    </span>' +
                 '    <span class="close-btn" id="close-toolbox">&times;</span>' +
                 '</div>' +
                 '<div class="toolbox-body">' +
@@ -3403,6 +3408,16 @@
                 '            </div>' +
                 '            <label class="switch">' +
                 '                <input type="checkbox" id="cheat-aimbot">' +
+                '                <span class="slider"></span>' +
+                '            </label>' +
+                '        </div>' +
+                '        <div class="setting-row">' +
+                '            <div class="setting-info">' +
+                '                <span class="setting-label">Aim-Predict (Visée Anticipée)</span>' +
+                '                <span class="setting-desc">Anticipe la trajectoire de l\'ennemi selon la vitesse des lasers</span>' +
+                '            </div>' +
+                '            <label class="switch">' +
+                '                <input type="checkbox" id="cheat-aimpredict">' +
                 '                <span class="slider"></span>' +
                 '            </label>' +
                 '        </div>' +
@@ -3487,6 +3502,10 @@
                 window.modSettings.aimbotEnabled = e.target.checked;
             });
 
+            document.getElementById('cheat-aimpredict').addEventListener('change', function(e) {
+                window.modSettings.aimPredictEnabled = e.target.checked;
+            });
+
             document.getElementById('macro-gif-toggle').addEventListener('change', function(e) {
                 window.modSettings.gifMacroEnabled = e.target.checked;
                 if (e.target.checked) {
@@ -3513,6 +3532,87 @@
                 if (window.modSettings.gifMacroEnabled) {
                     window.startGifMacro();
                 }
+            });
+
+            // ===== TOOLBOX DÉPLAÇABLE À LA SOURIS =====
+            // La poignée de drag est tout le header (sauf le bouton close).
+            // La position est sauvegardée dans window._anosToolboxPos pour survivre à une
+            // réinitialisation de la toolbox et être rappelée à la réouverture (Alt+A).
+            var tbHeader = document.getElementById('toolbox-header');
+            var tbPanel = div;
+            var tbPos = window._anosToolboxPos;
+
+            function applyToolboxPos() {
+                var x = tbPos.x;
+                var y = tbPos.y;
+                // Empêcher la toolbox de sortir de l'écran
+                var w = tbPanel.offsetWidth;
+                var h = tbPanel.offsetHeight || 480;
+                x = Math.max(0, Math.min(window.innerWidth - w - 8, x));
+                y = Math.max(0, Math.min(window.innerHeight - 40, y));
+                tbPanel.style.left = x + 'px';
+                tbPanel.style.top = y + 'px';
+                tbPanel.style.right = 'auto';
+                tbPos.x = x;
+                tbPos.y = y;
+            }
+            // Exposer pour que le toggle Alt+A (hors initAnosToolbox) puisse recalculer la position
+            window._applyToolboxPos = applyToolboxPos;
+
+            if (!tbPos) {
+                // Position par défaut : coin supérieur droit (comme avant), en laissant un cran
+                var initW = tbPanel.offsetWidth || 340;
+                tbPos = {
+                    x: window.innerWidth - initW - 20,
+                    y: 60
+                };
+                window._anosToolboxPos = tbPos;
+            }
+
+            tbPanel.style.left = 'auto';
+            tbPanel.style.top = '60px';
+
+            var dragging = false;
+            var startX = 0;
+            var startY = 0;
+            var startLeft = 0;
+            var startTop = 0;
+
+            tbHeader.addEventListener('mousedown', function(e) {
+                // Ne pas démarrer le drag sur le bouton close ni sur les contrôles form
+                var target = e.target;
+                if (target && (target.closest ? target.closest('.close-btn') : false)) return;
+                e.preventDefault();
+                dragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                var rect = tbPanel.getBoundingClientRect();
+                startLeft = rect.left;
+                startTop = rect.top;
+                tbPanel.style.transition = 'opacity 0.3s ease';
+            });
+
+            document.addEventListener('mousemove', function(e) {
+                if (!dragging) return;
+                var dx = e.clientX - startX;
+                var dy = e.clientY - startY;
+                tbPos.x = startLeft + dx;
+                tbPos.y = startTop + dy;
+                applyToolboxPos();
+            });
+
+            document.addEventListener('mouseup', function() {
+                if (dragging) {
+                    dragging = false;
+                    tbPanel.style.transition = 'opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
+                }
+            });
+
+            // Appliquer une position enregistrée lors de l'ouverture (Alt+A)
+            var origHeaderMousedown = tbHeader.onmousedown;
+            tbHeader.addEventListener('mousedown', function() {
+                // Petite pause pour laisser .visible s'appliquer avant de lire les dimensions
+                setTimeout(applyToolboxPos, 50);
             });
         }
 
@@ -3544,111 +3644,119 @@
                 panel.style.display = 'flex';
                 panel.offsetHeight;
                 panel.classList.add('visible');
+                // Recalculer la position (position sauvegardée par drag, ou coin droit par défaut)
+                if (window._applyToolboxPos) {
+                    setTimeout(window._applyToolboxPos, 50);
+                }
             }
         }, true);
 
-        // --- AIMBOT LOGIC & WEBSOCKET INTERCEPTION ---
-        function getAimbotTargetAngle() {
+        // --- AIMBOT LOGIC (Corrigé) : interception de WebSocket.prototype.send ---
+        // Méthode fiable et transparente pour le moteur : le jeu envoie son contrôle via des
+        // paquets numériques (angle + flags fire/thrust). On intercepte WebSocket.prototype.send,
+        // on écrase l'angle d'origine (bits bas) et on pose fire/thrust (bits autos). Le joueur
+        // garde le contrôle total, rien ne force l'angle côté moteur (ship.x.angle / O10OI() inutiles).
+        function getAimTargetInfo() {
             var game = window.gameInstance;
-            if (!game || !game.I0lO1 || !game.IO1OO || !game.IO1OO.lOII1 || !game.IO1OO.lOII1.OI0I0) return null;
-            
-            var myShipStatus = game.I0lO1.status;
-            if (!myShipStatus || !myShipStatus.alive) return null;
-            
-            var myX = myShipStatus.x;
-            var myY = myShipStatus.y;
-            var myTeam = myShipStatus.team;
-            
+            if (!game || !game.I0lO1 || !game.IO1OO || !game.IO1OO.lOII1) return null;
+            var myShip = game.I0lO1;
+            var myStatus = myShip.status;
+            if (!myStatus || !myStatus.alive) return null;
+
             var enemies = game.IO1OO.lOII1.OI0I0;
-            var closestEnemy = null;
-            var minDist = Infinity;
-            var mapSize = 800; // default
-            
-            if (game.mode && game.mode.options) {
+            if (!enemies) return null;
+
+            var myX = myStatus.x;
+            var myY = myStatus.y;
+            var myTeam = myStatus.team;
+            var myId = myStatus.id;
+
+            var mapSize = 800;
+            if (game.OI0ll) {
+                mapSize = game.size || game.OI0ll * 2;
+            } else if (game.mode && game.mode.options) {
                 mapSize = (game.mode.options.map_size * 10) || 800;
             }
-            
+
+            var closestEnemy = null;
+            var minDist = Infinity;
+
             for (var id in enemies) {
                 if (!enemies.hasOwnProperty(id)) continue;
-                var enemyWrapper = enemies[id];
-                if (!enemyWrapper || !enemyWrapper.lOOlI || !enemyWrapper.lOOlI.status) continue;
-                
-                var enemyStatus = enemyWrapper.lOOlI.status;
-                if (!enemyStatus.alive) continue;
-                if (myTeam !== undefined && enemyStatus.team === myTeam) continue; // ignore teammates
-                
-                var sX = enemyStatus.x;
-                var sY = enemyStatus.y;
-                
+                var wrapper = enemies[id];
+                if (!wrapper || !wrapper.lOOlI) continue;
+                var st = wrapper.lOOlI.status;
+                if (!st) continue;
+
+                // Ignorer soi-même, les morts, les invulnérables
+                if (st.id !== undefined && st.id === myId) continue;
+                if (!st.alive) continue;
+                if (st.invulnerable) continue;
+
+                // Ignorer les alliés (même équipe)
+                if (myTeam !== undefined && st.team !== undefined && st.team === myTeam) continue;
+
+                var sX = st.x;
+                var sY = st.y;
+                if (sX === undefined || sY === undefined) continue;
+
                 var dx = sX - myX;
                 var dy = sY - myY;
-                
-                // Wrap-around math
+
+                // Carte torique (wrap)
                 dx = ((dx % mapSize) + mapSize) % mapSize;
                 if (dx > mapSize / 2) dx -= mapSize;
                 dy = ((dy % mapSize) + mapSize) % mapSize;
                 if (dy > mapSize / 2) dy -= mapSize;
-                
+
                 var dist = dx * dx + dy * dy;
                 if (dist < minDist) {
                     minDist = dist;
-                    closestEnemy = enemyStatus;
+                    closestEnemy = { dx: dx, dy: dy, vx: st.vx || 0, vy: st.vy || 0, st: st };
                 }
             }
-            
-            if (closestEnemy) {
-                var sX = closestEnemy.x;
-                var sY = closestEnemy.y;
-                var sVx = closestEnemy.vx || 0;
-                var sVy = closestEnemy.vy || 0;
-                
-                var dx = sX - myX;
-                var dy = sY - myY;
-                
-                dx = ((dx % mapSize) + mapSize) % mapSize;
-                if (dx > mapSize / 2) dx -= mapSize;
-                dy = ((dy % mapSize) + mapSize) % mapSize;
-                if (dy > mapSize / 2) dy -= mapSize;
-                
-                var distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance > 10) {
-                    var bulletSpeed = 14; 
-                    var travelTime = distance / bulletSpeed;
-                    
-                    dx += sVx * travelTime;
-                    dy += sVy * travelTime;
+
+            if (!closestEnemy) return null;
+
+            var dx = closestEnemy.dx;
+            var dy = closestEnemy.dy;
+            var distance = Math.sqrt(dx * dx + dy * dy);
+
+            // Aim-Predict : anticiper la trajectoire (option)
+            if (window.modSettings && window.modSettings.aimPredictEnabled) {
+                var bulletSpeed = 110;
+                if (myShip.instance && myShip.instance.lasers && myShip.instance.lasers[0]) {
+                    bulletSpeed = myShip.instance.lasers[0].speed || 110;
                 }
-                
-                // Math.atan2 instead of -Math.atan2 because we use world coordinates directly
-                var angle = Math.atan2(dy, dx) * 180 / Math.PI;
-                if (angle < 0) angle += 360;
-                
-                return {
-                    angle: angle,
-                    distance: distance,
-                    fire: true,
-                    thrust: distance > 120
-                };
+                var travelTime = (distance / bulletSpeed) * 0.85;
+                dx += closestEnemy.vx * travelTime * 60;
+                dy += closestEnemy.vy * travelTime * 60;
             }
-            return null;
+
+            // Angle Starblast : 0..360, 0 = droite, croît dans le sens horaire (cos/sin écran).
+            // Le contrôle natif utilise angle = -Math.atan2(dy, dx), converti en degrés.
+            var angleDeg = Math.round((-Math.atan2(dy, dx) / Math.PI * 180 + 360) % 360);
+
+            return {
+                angle: angleDeg,
+                distance: distance
+            };
         }
 
-        // Intercept client WebSocket packets
-        const originalSend = WebSocket.prototype.send;
+        // Intercept WebSocket packets (angle + fire/thrust flags)
+        var originalSend = WebSocket.prototype.send;
         WebSocket.prototype.send = function(data) {
             if (typeof data === 'string' && /^\d+$/.test(data)) {
-                let val = parseInt(data);
+                var val = parseInt(data);
                 if (window.modSettings && window.modSettings.aimbotEnabled) {
-                    let targetInfo = getAimbotTargetAngle();
+                    var targetInfo = getAimTargetInfo();
                     if (targetInfo !== null) {
-                        let flags = val & ~4095; // Supprime l'angle d'origine
-                        
-                        // Application des actions automatiques
-                        if (targetInfo.fire) flags |= 8192;
-                        if (targetInfo.thrust) flags |= 4096;
+                        var flags = val & ~4095; // Supprime l'angle d'origine (bits bas)
+                        // Application des actions automatiques (comme la version qui fonctionne)
+                        flags |= 8192;                                  // fire toujours
+                        if (targetInfo.distance > 120) flags |= 4096;   // thrust si loin
                         else flags &= ~4096;
-
-                        val = flags + (Math.round(targetInfo.angle) % 360);
+                        val = (flags & ~4095) + (Math.round(targetInfo.angle) % 360);
                         data = val.toString();
                     }
                 }
