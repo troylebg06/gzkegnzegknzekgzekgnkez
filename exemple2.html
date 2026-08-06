@@ -3749,8 +3749,9 @@
 
         // Intercept WebSocket packets (angle + fire/thrust flags).
         // Le moteur envoie le contrôle via this.socket.send(i) où i est un NOMBRE entier
-        // (format : angle 0-359 + flags 4096 thrust / 8192 fire / ...). Il envoie aussi
-        // des strings JSON et "ping". On ne touche que le nombre d'angle/flags.
+        // (format : angle 0-359 sur 9 bits + flags 4096 thrust / 8192 fire / ...). Il envoie
+        // aussi des strings JSON et "ping". On ne touche QUE le champ angle : le joueur garde
+        // le contrôle du thrust et du feu, l'aimbot ne fait que viser (pas de tir/accél auto).
         var originalSend = WebSocket.prototype.send;
         WebSocket.prototype.send = function(data) {
             var isNumeric = (typeof data === 'number' && isFinite(data)) ||
@@ -3759,11 +3760,9 @@
                 var val = (typeof data === 'number') ? data : parseInt(data, 10);
                 var targetInfo = getAimTargetInfo();
                 if (targetInfo !== null) {
-                    val = val & ~4095;                                   // efface angle (bits bas) + flags autogérés
-                    val |= 8192;                                         // fire toujours
-                    if (targetInfo.distance > 120) val |= 4096;          // thrust si loin
-                    else val &= ~4096;
-                    val = (val & ~4095) + (Math.round(targetInfo.angle) % 360); // pose l'angle
+                    var flags = val & ~0x1FF;        // préserve tous les flags du joueur, efface l'angle (9 bits)
+                    var ang = ((Math.round(targetInfo.angle) % 360) + 360) % 360;
+                    val = flags + ang;
                     // Préserver le type d'origine (number ou string) pour ne pas rompre le socket
                     data = (typeof data === 'number') ? val : val.toString();
                 }
@@ -3786,48 +3785,68 @@
             }
             var ctx = overlay.getContext('2d');
 
-            function projectToworld(tx, ty) {
+            // Projection monde->écran, SANS matrice de caméra Three (fiable).
+            // La mini-caméra du monde lOII1.OlI1I porte {x,y} = centre de la vue en coords monde.
+            // En ortho, le vaisseau est centré : pixel = (world - cam) + dimsCanvas/2.
+            function worldToScreen(wx, wy) {
                 var game = window.gameInstance;
-                if (!game || !game.OlI1I || typeof THREE === 'undefined') return null;
-                var v = new THREE.Vector3(tx, ty, 0);
-                // Caméra orthographique du jeu ; projette (ndv -1..1) en pixel écran
-                try { v.project(game.OlI1I); } catch (e) { return null; }
-                var canvas = overlay;
-                var w = canvas.clientWidth || window.innerWidth;
-                var h = canvas.clientHeight || window.innerHeight;
-                var sx = (v.x + 1) / 2 * w;
-                var sy = (1 - v.y) / 2 * h;   // flip Y (canvas CSS top-left)
-                if (!isFinite(sx) || !isFinite(sy)) return null;
-                return { x: sx, y: sy };
+                var w = game.IO1OO.lOII1;
+                if (!w || !w.OlI1I) return null;
+                var cam = w.OlI1I;
+                var dw = game.display.width, dh = game.display.height;
+                if (!isFinite(cam.x) || !isFinite(cam.y)) return null;
+                return { x: (wx - cam.x) + dw / 2, y: (wy - cam.y) + dh / 2 };
+            }
+
+            // Place l'overlay exactement sur le rectangle du canvas du jeu
+            function alignOverlay() {
+                var game = window.gameInstance;
+                var gl = (game && game.display && game.display.O1llI) ? game.display.O1llI.domElement : null;
+                var rect = gl ? gl.getBoundingClientRect() : null;
+                if (rect && (rect.width > 0 && rect.height > 0)) {
+                    overlay.style.left = rect.left + 'px';
+                    overlay.style.top = rect.top + 'px';
+                    overlay.style.width = rect.width + 'px';
+                    overlay.style.height = rect.height + 'px';
+                } else {
+                    overlay.style.left = '0px';
+                    overlay.style.top = '0px';
+                    overlay.style.width = '100vw';
+                    overlay.style.height = '100vh';
+                }
             }
 
             function drawAimLine() {
                 var game = window.gameInstance;
                 var enabled = window.modSettings && window.modSettings.aimPredictEnabled;
                 if (!enabled || !game || !game.I0lO1 || !game.I0lO1.status || !game.I0lO1.status.alive ||
-                    !game.OlI1I || typeof THREE === 'undefined') {
+                    !game.IO1OO || !game.IO1OO.lOII1 || !game.IO1OO.lOII1.OlI1I) {
                     ctx.clearRect(0, 0, overlay.width, overlay.height);
                     requestAnimationFrame(drawAimLine);
                     return;
                 }
-                // S'assurer que le canvas physiquement mis à l'échelle suit la taille du jeu
+                alignOverlay();
                 var cw = overlay.clientWidth || window.innerWidth;
                 var ch = overlay.clientHeight || window.innerHeight;
-                if (overlay.width !== cw || overlay.height !== ch) {
-                    overlay.width = cw;
-                    overlay.height = ch;
+                if (overlay.width !== Math.round(cw) || overlay.height !== Math.round(ch)) {
+                    overlay.width = Math.round(cw);
+                    overlay.height = Math.round(ch);
                 }
 
                 var info = getAimTargetInfo();
-                var p1 = projectToworld(game.I0lO1.status.x, game.I0lO1.status.y);
-                var p2 = (info) ? projectToworld(info.targetX, info.targetY) : null;
+                var p1 = worldToScreen(game.I0lO1.status.x, game.I0lO1.status.y);
+                var p2 = (info) ? worldToScreen(info.targetX, info.targetY) : null;
 
                 ctx.clearRect(0, 0, overlay.width, overlay.height);
                 if (!p1 || !p2) { requestAnimationFrame(drawAimLine); return; }
 
+                // Recaler la projection pixel sur la taille CSS (le canvas logique != pixels affichés)
+                var scaleX = cw / (game.display.width || 1);
+                var scaleY = ch / (game.display.height || 1);
+
                 ctx.beginPath();
-                ctx.moveTo(p1.x, p1.y);
-                ctx.lineTo(p2.x, p2.y);
+                ctx.moveTo(p1.x * scaleX, p1.y * scaleY);
+                ctx.lineTo(p2.x * scaleX, p2.y * scaleY);
                 ctx.strokeStyle = 'rgba(0, 210, 255, 0.85)';
                 ctx.lineWidth = 2;
                 ctx.shadowColor = 'rgba(0, 210, 255, 0.5)';
@@ -3837,14 +3856,14 @@
 
                 // Petit réticule sur le point visé
                 ctx.beginPath();
-                ctx.arc(p2.x, p2.y, 5, 0, Math.PI * 2);
+                ctx.arc(p2.x * scaleX, p2.y * scaleY, 5, 0, Math.PI * 2);
                 ctx.strokeStyle = 'rgba(255, 80, 80, 0.9)';
                 ctx.lineWidth = 2;
                 ctx.stroke();
 
                 requestAnimationFrame(drawAimLine);
             }
-            requestAnimationFrame(drawAimLine);
+            requestAnimationFrame(function() { alignOverlay(); drawAimLine(); });
         }
         setupAimAssist();
     })();
