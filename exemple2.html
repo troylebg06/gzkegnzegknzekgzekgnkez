@@ -3726,7 +3726,8 @@
                 for (var aid in asteroids) {
                     if (!asteroids.hasOwnProperty(aid)) continue;
                     var a = asteroids[aid];
-                    // a peut être un objet { x, y, size, on } 
+                    // a peut être un objet { x, y, size, on } — ne traiter que les actifs
+                    if (!a || a.on === false) continue;
                     var ax = a.x, ay = a.y, aSize = a.size || 15;
                     if (typeof ax === 'undefined' || typeof ay === 'undefined') continue;
                     var adx = ax - playerStatus.x;
@@ -3764,6 +3765,7 @@
                 for (var bid in asteroids) {
                     if (!asteroids.hasOwnProperty(bid)) continue;
                     var b = asteroids[bid];
+                    if (!b || b.on === false) continue;
                     var bx = b.x, by = b.y, bSize = b.size || 15;
                     if (typeof bx === 'undefined' || typeof by === 'undefined') continue;
                     var odx = bx - playerStatus.x;
