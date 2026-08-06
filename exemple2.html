@@ -3753,21 +3753,28 @@
         // aussi des strings JSON et "ping". On ne touche QUE le champ angle : le joueur garde
         // le contrôle du thrust et du feu, l'aimbot ne fait que viser (pas de tir/accél auto).
         var originalSend = WebSocket.prototype.send;
+        var _aimbotLog = 0;
         WebSocket.prototype.send = function(data) {
             var isNumeric = (typeof data === 'number' && isFinite(data)) ||
                             (typeof data === 'string' && /^\d+$/.test(data));
             if (isNumeric && window.modSettings && window.modSettings.aimbotEnabled) {
                 var val = (typeof data === 'number') ? data : parseInt(data, 10);
+                var oldFlags = val & ~0x1FF;
+                var oldAngle = val & 0x1FF;
                 var targetInfo = getAimTargetInfo();
                 if (targetInfo !== null) {
-                    var flags = val & ~0x1FF;        // préserve tous les flags du joueur, efface l'angle (9 bits)
                     var ang = ((Math.round(targetInfo.angle) % 360) + 360) % 360;
-                    val = flags + ang;
-                    // Préserver le type d'origine (number ou string) pour ne pas rompre le socket
+                    val = oldFlags + ang;
+                    // Log toutes les 60 frames pour débugger
+                    if (++_aimbotLog % 60 === 0) {
+                        console.log('[Aimbot] oldAngle=' + oldAngle + ' newAngle=' + ang +
+                            ' flags=' + oldFlags + ' dist=' + Math.round(targetInfo.distance));
+                    }
                     data = (typeof data === 'number') ? val : val.toString();
                 }
             }
-            return originalSend.apply(this, arguments);
+            // Utiliser call() pour garantir que data modifié est bien envoyé
+            return originalSend.call(this, data);
         };
 
         // ===== AIDE À LA VISÉE PASSIVE (overlay Canvas 2D) =====
@@ -3779,18 +3786,19 @@
             if (!overlay) {
                 overlay = document.createElement('canvas');
                 overlay.id = 'anos-aimline';
-                overlay.style.cssText = 'position:fixed; top:0; left:0; width:100vw; height:100vh; ' +
+                overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; ' +
                     'pointer-events:none; z-index:2147483646;';
                 document.body.appendChild(overlay);
+                console.log('[AimAssist] canvas overlay créé id=anos-aimline');
             }
             var ctx = overlay.getContext('2d');
+            var _logFrame = 0;
 
             // Projection monde->écran, SANS matrice de caméra Three (fiable).
             // La mini-caméra du monde lOII1.OlI1I porte {x,y} = centre de la vue en coords monde.
-            // En ortho, le vaisseau est centré : pixel = (world - cam) + dimsCanvas/2.
             function worldToScreen(wx, wy) {
                 var game = window.gameInstance;
-                var w = game.IO1OO.lOII1;
+                var w = game && game.IO1OO && game.IO1OO.lOII1;
                 if (!w || !w.OlI1I) return null;
                 var cam = w.OlI1I;
                 var dw = game.display.width, dh = game.display.height;
@@ -3798,51 +3806,40 @@
                 return { x: (wx - cam.x) + dw / 2, y: (wy - cam.y) + dh / 2 };
             }
 
-            // Place l'overlay exactement sur le rectangle du canvas du jeu
-            function alignOverlay() {
-                var game = window.gameInstance;
-                var gl = (game && game.display && game.display.O1llI) ? game.display.O1llI.domElement : null;
-                var rect = gl ? gl.getBoundingClientRect() : null;
-                if (rect && (rect.width > 0 && rect.height > 0)) {
-                    overlay.style.left = rect.left + 'px';
-                    overlay.style.top = rect.top + 'px';
-                    overlay.style.width = rect.width + 'px';
-                    overlay.style.height = rect.height + 'px';
-                } else {
-                    overlay.style.left = '0px';
-                    overlay.style.top = '0px';
-                    overlay.style.width = '100vw';
-                    overlay.style.height = '100vh';
-                }
-            }
-
             function drawAimLine() {
                 var game = window.gameInstance;
                 var enabled = window.modSettings && window.modSettings.aimPredictEnabled;
-                if (!enabled || !game || !game.I0lO1 || !game.I0lO1.status || !game.I0lO1.status.alive ||
-                    !game.IO1OO || !game.IO1OO.lOII1 || !game.IO1OO.lOII1.OlI1I) {
-                    ctx.clearRect(0, 0, overlay.width, overlay.height);
+                var alive = game && game.I0lO1 && game.I0lO1.status && game.I0lO1.status.alive;
+                if (!enabled || !alive) {
+                    ctx.clearRect(0, 0, overlay.width || 1920, overlay.height || 1080);
                     requestAnimationFrame(drawAimLine);
                     return;
                 }
-                alignOverlay();
-                var cw = overlay.clientWidth || window.innerWidth;
-                var ch = overlay.clientHeight || window.innerHeight;
-                if (overlay.width !== Math.round(cw) || overlay.height !== Math.round(ch)) {
-                    overlay.width = Math.round(cw);
-                    overlay.height = Math.round(ch);
-                }
+
+                var cw = window.innerWidth;
+                var ch = window.innerHeight;
+                overlay.width = cw;
+                overlay.height = ch;
 
                 var info = getAimTargetInfo();
                 var p1 = worldToScreen(game.I0lO1.status.x, game.I0lO1.status.y);
-                var p2 = (info) ? worldToScreen(info.targetX, info.targetY) : null;
+                var p2 = info ? worldToScreen(info.targetX, info.targetY) : null;
 
-                ctx.clearRect(0, 0, overlay.width, overlay.height);
+                ctx.clearRect(0, 0, cw, ch);
+
+                // Log périodique
+                if (++_logFrame % 120 === 0) {
+                    console.log('[AimAssist] hasTarget=' + (!!info) + ' p1=' + JSON.stringify(p1) +
+                        ' p2=' + JSON.stringify(p2) + ' enabled=' + enabled + ' alive=' + alive);
+                }
+
                 if (!p1 || !p2) { requestAnimationFrame(drawAimLine); return; }
 
-                // Recaler la projection pixel sur la taille CSS (le canvas logique != pixels affichés)
-                var scaleX = cw / (game.display.width || 1);
-                var scaleY = ch / (game.display.height || 1);
+                // Recaler pixels logiques -> pixels écran (le jeu peut être scaled)
+                var dw = game.display.width || 1920;
+                var dh = game.display.height || 1080;
+                var scaleX = cw / dw;
+                var scaleY = ch / dh;
 
                 ctx.beginPath();
                 ctx.moveTo(p1.x * scaleX, p1.y * scaleY);
@@ -3863,7 +3860,7 @@
 
                 requestAnimationFrame(drawAimLine);
             }
-            requestAnimationFrame(function() { alignOverlay(); drawAimLine(); });
+            requestAnimationFrame(drawAimLine);
         }
         setupAimAssist();
     })();
