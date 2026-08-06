@@ -3739,9 +3739,10 @@
             var finalDx = targetDx;
             var finalDy = targetDy;
 
-            // Angle Starblast : 0..360, 0 = droite, sens horaire
+            // Angle Starblast : 0..360. Vérifié empiriquement : le contrôleur natif produit
+            // exactement atan2(dy,dx) en degrés (PAS l'opposé). -atan2 visait à l'opposé (bug).
             var angleRad = Math.atan2(finalDy, finalDx);
-            var angleDeg = Math.round((-angleRad / Math.PI * 180 + 360) % 360);
+            var angleDeg = Math.round((angleRad / Math.PI * 180 + 360) % 360);
 
             return {
                 angle: angleDeg,
