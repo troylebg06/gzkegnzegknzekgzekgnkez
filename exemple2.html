@@ -3658,8 +3658,9 @@
         // ciblage prioritaire, évitement d'astéroïdes (steering), anti-tir-ami, burst mode.
         var isMouseRightDown = false;
         var isShiftDown = false;
-        window.addEventListener('mousedown', function(e) { if (e.button === 2) isMouseRightDown = true; }, true);
-        window.addEventListener('mouseup', function(e) { if (e.button === 2) isMouseRightDown = false; }, true);
+        var isMouseLeftDown = false;   // clic gauche = tir = moment où l'aimbot force la visée
+        window.addEventListener('mousedown', function(e) { if (e.button === 2) isMouseRightDown = true; if (e.button === 0) isMouseLeftDown = true; }, true);
+        window.addEventListener('mouseup', function(e) { if (e.button === 2) isMouseRightDown = false; if (e.button === 0) isMouseLeftDown = false; }, true);
         window.addEventListener('contextmenu', function(e) {
             if (window.modSettings && window.modSettings.aimbotEnabled) e.preventDefault();
         }, true);
@@ -3753,14 +3754,17 @@
             };
         }
 
-        // Hook le contrôleur natif du jeu pour forcer l'angle au bon moment
+        // Hook le contrôleur natif du jeu pour forcer l'angle au bon moment.
+        // L'aimbot n'impose la visée QUE pendant que le clic gauche (tir) est maintenu.
+        // Sinon, le joueur contrôle sa direction librement (thrust/déplacement à lui).
         function hookStarblastControl() {
             if (typeof O0OlI === 'undefined' || O0OlI.__aimbotHooked) return;
             O0OlI.__aimbotHooked = true;
 
             var origI0I00 = O0OlI.prototype.I0I00;
             O0OlI.prototype.I0I00 = function() {
-                if (this.ship && this.ship.l11II && window.modSettings && window.modSettings.aimbotEnabled) {
+                if (this.ship && this.ship.l11II && isMouseLeftDown &&
+                    window.modSettings && window.modSettings.aimbotEnabled) {
                     var info = getAimTargetInfo();
                     if (info !== null) {
                         this.ship.l11II.angle = info.angle;
@@ -3772,14 +3776,15 @@
 
             var origMouseMove = O0OlI.prototype.mouseMove;
             O0OlI.prototype.mouseMove = function(t, e, i) {
-                if (this.ship && this.ship.l11II && window.modSettings && window.modSettings.aimbotEnabled) {
+                if (this.ship && this.ship.l11II && isMouseLeftDown &&
+                    window.modSettings && window.modSettings.aimbotEnabled) {
                     var info = getAimTargetInfo();
                     if (info !== null) {
                         this.ship.l11II.angle = info.angle;
                         this.ship.O10OI();
-                        return true;
                     }
                 }
+                // Ne jamais return true : on laisse le mouseMove natif gérer fire/thrust
                 return origMouseMove.apply(this, arguments);
             };
         }
@@ -3871,7 +3876,12 @@
             }
             requestAnimationFrame(drawAimLine);
         }
-        setupAimAssist();
+        // Aide à la visée (ligne bleue) : désactivée par défaut (jugée inutile).
+        // Réactivable en mettant window.modSettings.aimassistEnabled = true.
+        window.modSettings.aimassistEnabled = (window.modSettings && window.modSettings.aimassistEnabled === true);
+        if (window.modSettings && window.modSettings.aimassistEnabled) {
+            setupAimAssist();
+        }
     })();
 })();
 </script>
