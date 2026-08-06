@@ -3101,12 +3101,39 @@
 
     window.modSettings = {
         fovEnabled: true,
-        noobPassEnabled: true,
         gifMacroEnabled: false,
         aimbotEnabled: false,
         aimPredictEnabled: false,
         aimbotRotationBoost: 3.0     // multiplier de vitesse de rotation (tourner plus vite)
     };
+
+    // ===== THÈME PAGE D'ACCUEIL (style cohérent jaune/verre, réversible) =====
+    // Applique au menu d'accueil du jeu un fond légèrement teinté et des accents
+    // ambrés. Léger (ne déplace rien) et désactivable via window.modSettings.homeThemeEnabled.
+    window.modSettings.homeThemeEnabled = true;
+    (function applyHomeTheme() {
+        if (!window.modSettings.homeThemeEnabled) return;
+        var s = document.createElement('style');
+        s.id = 'anos-home-theme';
+        s.textContent = [
+            '/* Thème accueil — fond teinté doux */',
+            '#home, body {',
+            '  background: linear-gradient(180deg, rgba(15,25,45,0.96) 0%, rgba(6,12,24,0.98) 100%) !important;',
+            '}',
+            '/* Accents ambrés cohérents avec le toolbox */',
+            '#home a, #home button, .social a, #home input[type=button] {',
+            '  transition: box-shadow .25s ease, transform .2s ease, color .2s ease;',
+            '}',
+            '#home a:hover, #home button:hover {',
+            '  box-shadow: 0 0 16px rgba(230,184,0,0.35) !important;',
+            '}',
+            '/* Logo / titres légèrement lumineux */',
+            '#home h1, #home h2, #home .logo {',
+            '  text-shadow: 0 0 18px rgba(230,184,0,0.35) !important;',
+            '}'
+        ].join('\n');
+        document.head.appendChild(s);
+    })();
 
     var originalRespawnDelay = null;
 
@@ -3168,6 +3195,54 @@
         if (!vocab['U']) vocab['U'] = { icon: '\ud83e\udd21', text: 'Clown' };
         if (!vocab['I']) vocab['I'] = { icon: '\ud83d\udd25', text: 'Fire' };
         if (!vocab['V']) vocab['V'] = { icon: '\ud83d\udc80', text: 'Skull' };
+
+        // === Ajout des 4 émotes custom comme boutons de la 5ème ligne de la grille vanilla ===
+        // Le chatpanel vanilla construit ses boutons une seule fois au chargement, en plaçant
+        // chaque bouton via chat.add(btn, [col/5, .25*row, w, h]) -> 4 colonnes par ligne.
+        // On repositionne toute la grille en 5 lignes x 4 colonnes pour y caser les 4 customs.
+        if (chat.__customEmotesInjected) return;
+        if (!chat.buttons || chat.buttons.length === 0) return;
+
+        try {
+            var customEmotes = [
+                { key: 'J', icon: '\u2591', text: 'Blank' },
+                { key: 'U', icon: '\ud83e\udd21', text: 'Clown' },
+                { key: 'I', icon: '\ud83d\udd25', text: 'Fire' },
+                { key: 'V', icon: '\ud83d\udc80', text: 'Skull' }
+            ];
+            var btnClass = chat.buttons[0].constructor;
+            var added = 0;
+            for (var e = 0; e < customEmotes.length; e++) {
+                var ce = customEmotes[e];
+                // Évite de dupliquer un bouton existant avec la même touche
+                var exists = false;
+                for (var b = 0; b < chat.buttons.length; b++) {
+                    if (chat.buttons[b].key === ce.key) { exists = true; break; }
+                }
+                if (exists) continue;
+                var newBtn = new btnClass(chat.Ol111 || game, ce.text, ce.icon, ce.key,
+                    function(key) { return function() { chat.typed(key); }; }(ce.key));
+                // Positionne en dernière ligne, colonne progresse ; le .add liste tous les boutons
+                // y compris existants -> on applique une grille 5x4 (index global)
+                var idx = chat.buttons.length + added;
+                var col = idx % 4;
+                var row = Math.floor(idx / 4);
+                chat.add(newBtn, [(col + 1) / 5 + .01, .25 * row + .01, 1/5 - .02, .23]);
+                chat.buttons.push(newBtn);
+                added++;
+            }
+            // Repositionne TOUS les boutons (existants + customs) en grille compacte 5x4
+            var allBtns = chat.buttons || [];
+            for (var i = 0; i < allBtns.length; i++) {
+                var c = i % 4;
+                var r = Math.floor(i / 4);
+                // Taille réduite pour tenir 5 lignes ; row compressé (0.19)
+                allBtns[i].O10lO = allBtns[i].O00OI = [(c + 1) / 5 + .01, .19 * r + .01, 1/5 - .02, .17];
+            }
+            chat.__customEmotesInjected = true;
+        } catch (err) {
+            // ne rien casser si le chatpanel a une structure inattendue
+        }
     }
     setInterval(ensureCustomEmotes, 1000);
 
@@ -3200,29 +3275,55 @@
 
         var macroPatterns = {
             salute: [
-                ['L', 'Y', 'G', 'P', 'B'],
-                ['Y', 'G', 'P', 'B', 'L'],
-                ['G', 'P', 'B', 'L', 'Y']
+                ['L', 'Y', 'G', 'P', 'B', 'L'],
+                ['Y', 'G', 'P', 'B', 'L', 'Y'],
+                ['G', 'P', 'B', 'L', 'Y', 'G'],
+                ['P', 'B', 'L', 'Y', 'G', 'P'],
+                ['L', 'G', 'B', 'Y', 'P', 'L']
             ],
             tactic: [
-                ['T', 'F', 'A', 'H', 'K'],
-                ['A', 'H', 'K', 'F', 'T'],
-                ['F', 'T', 'H', 'K', 'A']
+                ['T', 'F', 'A', 'H', 'K', 'T'],
+                ['A', 'H', 'K', 'F', 'T', 'A'],
+                ['F', 'T', 'H', 'K', 'A', 'F'],
+                ['H', 'K', 'F', 'T', 'A', 'H'],
+                ['T', 'A', 'K', 'F', 'H', 'T']
             ],
             hype: [
-                ['G', 'Y', 'X', 'P', 'L'],
-                ['Y', 'G', 'P', 'X', 'L'],
-                ['X', 'P', 'G', 'Y', 'L']
+                ['G', 'Y', 'X', 'P', 'L', 'G', 'Y'],
+                ['Y', 'G', 'P', 'X', 'L', 'Y', 'G'],
+                ['X', 'P', 'G', 'Y', 'L', 'X', 'P'],
+                ['P', 'G', 'Y', 'X', 'L', 'P', 'G'],
+                ['G', 'X', 'Y', 'P', 'L', 'G', 'X']
             ],
             fusion: [
-                ['G', 'J', 'Y', 'U', 'K'],
-                ['Y', 'U', 'G', 'J', 'K']
+                ['G', 'J', 'Y', 'U', 'K', 'G'],
+                ['Y', 'U', 'G', 'J', 'K', 'Y'],
+                ['J', 'G', 'U', 'Y', 'K', 'J'],
+                ['G', 'J', 'U', 'Y', 'U', 'J', 'G']
             ],
             mode_tng: [
                 ['T', 'N', 'G', 'J', 'J'],
                 ['J', 'T', 'N', 'G', 'J'],
                 ['J', 'J', 'T', 'N', 'G'],
-                ['J', 'T', 'N', 'G', 'J']
+                ['J', 'T', 'N', 'G', 'J'],
+                ['G', 'J', 'T', 'N', 'J', 'J']
+            ],
+            dancing: [
+                ['L', 'P', 'L', 'P', 'L', 'Y', 'L'],
+                ['Y', 'L', 'P', 'L', 'P', 'Y', 'L'],
+                ['P', 'L', 'Y', 'L', 'P', 'L', 'P'],
+                ['L', 'Y', 'P', 'L', 'Y', 'P', 'L']
+            ],
+            rain: [
+                ['G', 'S', 'G', 'S', 'G', 'S', 'G', 'S'],
+                ['S', 'G', 'S', 'G', 'S', 'G', 'S', 'G'],
+                ['G', 'S', 'S', 'G', 'G', 'S', 'S', 'G']
+            ],
+            epic: [
+                ['G', 'Y', 'H', 'K', 'G', 'Y', 'H', 'K'],
+                ['Y', 'H', 'K', 'G', 'Y', 'H', 'K', 'G'],
+                ['H', 'K', 'G', 'Y', 'H', 'K', 'G', 'Y'],
+                ['G', 'H', 'Y', 'K', 'G', 'H', 'Y', 'K']
             ]
         };
 
@@ -3355,10 +3456,6 @@
                 "input:checked + .slider { background: #e6b800; }" +
                 "input:checked + .slider:before { transform: translateX(18px); }" +
                 ".toolbox-select { width: 100%; background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.2); border-radius: 6px; color: #000; padding: 6px 10px; font-size: 12px; outline: none; cursor: pointer; margin-top: 4px; }" +
-                ".emote-grid-4 { display: grid; grid-template-columns: repeat(4,1fr); gap: 8px; margin-top: 8px; }" +
-                ".emote-btn { background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.2); border-radius: 8px; color: #000; padding: 8px 4px; font-size: 16px; cursor: pointer; display: flex; flex-direction: column; align-items: center; justify-content: center; transition: all 0.2s ease; }" +
-                ".emote-btn:hover { background: rgba(255,255,255,0.8); transform: scale(1.05); }" +
-                ".emote-btn span { font-size: 9px; color: #553d00; margin-top: 2px; }" +
                 "/* Bouton lumineux de référence (style settingatabses.js 'Apply') */" +
                 ".anon-btn { " +
                 "    padding: 6px 10px; font-size: 13px; cursor: pointer; margin: 5px 0 0 0; text-align: center; " +
@@ -3388,16 +3485,6 @@
                 '            </div>' +
                 '            <label class="switch">' +
                 '                <input type="checkbox" id="cheat-zoom" checked>' +
-                '                <span class="slider"></span>' +
-                '            </label>' +
-                '        </div>' +
-                '        <div class="setting-row">' +
-                '            <div class="setting-info">' +
-                '                <span class="setting-label">Noob Pass</span>' +
-                '                <span class="setting-desc">Rename Elite Pass to Noob Pass</span>' +
-                '            </div>' +
-                '            <label class="switch">' +
-                '                <input type="checkbox" id="cheat-noobpass" checked>' +
                 '                <span class="slider"></span>' +
                 '            </label>' +
                 '        </div>' +
@@ -3433,15 +3520,6 @@
                 '        </div>' +
                 '    </div>' +
                 '    <div class="toolbox-section">' +
-                '        <div class="section-title">Emotes Custom (4 Colonnes)</div>' +
-                '        <div class="emote-grid-4">' +
-                '            <button class="emote-btn" onclick="window.sendEmoteDirect(\'J\')">\u2591<span>Blank (J)</span></button>' +
-                '            <button class="emote-btn" onclick="window.sendEmoteDirect(\'U\')">\ud83e\udd21<span>Clown (U)</span></button>' +
-                '            <button class="emote-btn" onclick="window.sendEmoteDirect(\'I\')">\ud83d\udd25<span>Fire (I)</span></button>' +
-                '            <button class="emote-btn" onclick="window.sendEmoteDirect(\'V\')">\ud83d\udc80<span>Skull (V)</span></button>' +
-                '        </div>' +
-                '    </div>' +
-                '    <div class="toolbox-section">' +
                 '        <div class="section-title">Emoji GIF Macro</div>' +
                 '        <div class="setting-row">' +
                 '            <div class="setting-info">' +
@@ -3462,6 +3540,9 @@
                 '                <option value="fusion">Fusion (mixed) - GG, Custom, Yes, Custom, Kill</option>' +
                 '                <option value="mode_fixe">Mode 1 - Fixe1, Blank, Clavier/Custom, Blank, Fixe1</option>' +
                 '                <option value="mode_tng">Mode 2 - TOI NON GG (TNG) Defilant (G -> D)</option>' +
+                '                <option value="dancing">Dancing - Hello/NoProb pulse (rôti)</option>' +
+                '                <option value="rain">Rain - GG/Smile rafale</option>' +
+                '                <option value="epic">Epic - GG/Yes/Help/Kill chaîne longue</option>' +
                 '            </select>' +
                 '        </div>' +
                 '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
@@ -3481,10 +3562,13 @@
                 '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
                 '            <div class="setting-label">Speed (Frame rate)</div>' +
                 '            <select class="toolbox-select" id="macro-speed">' +
-                '                <option value="300">Fast (300ms)</option>' +
-                '                <option value="500" selected>Normal (500ms)</option>' +
-                '                <option value="800">Slow (800ms)</option>' +
-                '                <option value="1200">Very Slow (1.2s)</option>' +
+                '                <option value="60">Insane (60ms)</option>' +
+                '                <option value="90">Very Fast (90ms)</option>' +
+                '                <option value="120">Ultra (120ms)</option>' +
+                '                <option value="180">Fast (180ms)</option>' +
+                '                <option value="300" selected>Normal (300ms)</option>' +
+                '                <option value="500">Slow (500ms)</option>' +
+                '                <option value="800">Very Slow (800ms)</option>' +
                 '            </select>' +
                 '        </div>' +
                 '    </div>' +
@@ -3499,10 +3583,6 @@
 
             document.getElementById('cheat-zoom').addEventListener('change', function(e) {
                 window.modSettings.fovEnabled = e.target.checked;
-            });
-
-            document.getElementById('cheat-noobpass').addEventListener('change', function(e) {
-                window.modSettings.noobPassEnabled = e.target.checked;
             });
 
             document.getElementById('cheat-fastrespawn').addEventListener('change', function(e) {
