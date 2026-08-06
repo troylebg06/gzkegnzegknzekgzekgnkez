@@ -3104,7 +3104,9 @@
         noobPassEnabled: true,
         gifMacroEnabled: false,
         aimbotEnabled: false,
-        aimPredictEnabled: false
+        aimPredictEnabled: false,
+        strafeEnabled: true,         // déplacement latéral A/D découplé de la visée
+        aimbotRotationBoost: 3.0     // multiplier de vitesse de rotation (tourner plus vite)
     };
 
     var originalRespawnDelay = null;
@@ -3121,6 +3123,15 @@
                 game.mode.respawn_delay = 0;
             } else if (originalRespawnDelay !== null) {
                 game.mode.respawn_delay = originalRespawnDelay;
+            }
+
+            // STRAFE : activer le déplacement latéral A/D découplé de la visée.
+            // Sans options.strafe > 0, les touches A/D sont ignorées par le contrôleur natif.
+            if (window.modSettings && window.modSettings.strafeEnabled) {
+                if (!game.mode.options) game.mode.options = {};
+                if (game.mode.options.strafe === undefined || game.mode.options.strafe === 0) {
+                    game.mode.options.strafe = 1;   // facteur de vitesse latérale
+                }
             }
         }
 
@@ -3767,7 +3778,13 @@
                     window.modSettings && window.modSettings.aimbotEnabled) {
                     var info = getAimTargetInfo();
                     if (info !== null) {
+                        // Direction de tir : angle calculé
                         this.ship.l11II.angle = info.angle;
+                        // Boost de rotation : le vaisseau tourne plus vite vers la cible
+                        if (window.modSettings.aimbotRotationBoost) {
+                            this.ship.l11II.Il00I = (this.ship.status && this.ship.status.Il00I) ?
+                                this.ship.status.Il00I * window.modSettings.aimbotRotationBoost : 1;
+                        }
                         this.ship.O10OI();
                     }
                 }
