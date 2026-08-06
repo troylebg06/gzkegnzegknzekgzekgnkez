@@ -3103,7 +3103,8 @@
         fovEnabled: true,
         noobPassEnabled: true,
         gifMacroEnabled: false,
-        aimbotEnabled: false
+        aimbotEnabled: false,
+        aimPredictEnabled: false
     };
 
     var originalRespawnDelay = null;
@@ -3308,8 +3309,8 @@
             style.innerHTML = "" +
                 "#anos-toolbox {" +
                 "    position: fixed;" +
+                "    left: auto;" +
                 "    top: 60px;" +
-                "    right: 20px;" +
                 "    width: 340px;" +
                 "    background: rgba(10, 25, 45, 0.88);" +
                 "    backdrop-filter: blur(12px);" +
@@ -3321,15 +3322,16 @@
                 "    font-family: sans-serif;" +
                 "    z-index: 999999;" +
                 "    user-select: none;" +
+                "    -webkit-user-select: none;" +
                 "    display: none;" +
                 "    flex-direction: column;" +
                 "    overflow: hidden;" +
-                "    transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);" +
-                "    transform: translateY(-10px);" +
+                "    transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);" +
                 "    opacity: 0;" +
                 "}" +
                 "#anos-toolbox.visible { display: flex; transform: translateY(0); opacity: 1; }" +
-                ".toolbox-header { padding: 14px 18px; background: rgba(0, 191, 255, 0.1); border-bottom: 1px solid rgba(0, 191, 255, 0.2); display: flex; justify-content: space-between; align-items: center; }" +
+                ".toolbox-header { padding: 14px 18px; background: rgba(0, 191, 255, 0.1); border-bottom: 1px solid rgba(0, 191, 255, 0.2); display: flex; justify-content: space-between; align-items: center; cursor: move; }" +
+                ".toolbox-header .drag-handle { margin-right: 8px; color: rgba(0, 191, 255, 0.5); font-size: 13px; }" +
                 ".toolbox-header h3 { margin: 0; font-weight: 600; font-size: 15px; letter-spacing: 0.5px; color: #00d2ff; text-shadow: 0 0 10px rgba(0, 210, 255, 0.3); }" +
                 ".toolbox-header .close-btn { cursor: pointer; font-size: 18px; color: #aaa; transition: color 0.2s; }" +
                 ".toolbox-header .close-btn:hover { color: #ff4d4d; }" +
@@ -3359,8 +3361,11 @@
             var div = document.createElement('div');
             div.id = 'anos-toolbox';
             div.innerHTML = '' +
-                '<div class="toolbox-header">' +
-                '    <h3>Anos Cheat & Macro Panel</h3>' +
+                '<div class="toolbox-header" id="toolbox-header">' +
+                '    <span class="drag-handle" style="flex:1; display:flex; align-items:center;">' +
+                '        <span style="margin-right:8px; opacity:0.6;">&#9776;</span>' +
+                '        <h3>Anos Cheat &amp; Macro Panel</h3>' +
+                '    </span>' +
                 '    <span class="close-btn" id="close-toolbox">&times;</span>' +
                 '</div>' +
                 '<div class="toolbox-body">' +
@@ -3406,6 +3411,16 @@
                 '                <span class="slider"></span>' +
                 '            </label>' +
                 '        </div>' +
+                '        <div class="setting-row">' +
+                '            <div class="setting-info">' +
+                '                <span class="setting-label">Aim-Predict (Visée Anticipée)</span>' +
+                '                <span class="setting-desc">Anticipe la trajectoire de l\'ennemi selon la vitesse des lasers</span>' +
+                '            </div>' +
+                '            <label class="switch">' +
+                '                <input type="checkbox" id="cheat-aimpredict">' +
+                '                <span class="slider"></span>' +
+                '            </label>' +
+                '        </div>' +
                 '    </div>' +
                 '    <div class="toolbox-section">' +
                 '        <div class="section-title">Emotes Custom (4 Colonnes)</div>' +
@@ -3428,235 +3443,4 @@
                 '                <span class="slider"></span>' +
                 '            </label>' +
                 '        </div>' +
-                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
-                '            <div class="setting-label">Preset Animation</div>' +
-                '            <select class="toolbox-select" id="macro-preset">' +
-                '                <option value="salute">Salute - Hello, Yes, GG, No Prob, Bye</option>' +
-                '                <option value="tactic">Tactic - Team, Follow, Attack, Help, Kill</option>' +
-                '                <option value="hype">Hype - GG, Yes, Thanks, No Prob, Hello</option>' +
-                '                <option value="fusion">Fusion (mixed) - GG, Custom, Yes, Custom, Kill</option>' +
-                '                <option value="mode_fixe">Mode 1 - Fixe1, Blank, Clavier/Custom, Blank, Fixe1</option>' +
-                '                <option value="mode_tng">Mode 2 - TOI NON GG (TNG) Defilant (G -> D)</option>' +
-                '            </select>' +
-                '        </div>' +
-                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
-                '            <div class="setting-label">Pos 3 Emote (Mode 1)</div>' +
-                '            <select class="toolbox-select" id="macro-pos3-emote">' +
-                '                <option value="X">X - Thanks (Par defaut / Tape au clavier)</option>' +
-                '                <option value="G">G - GG</option>' +
-                '                <option value="Y">Y - Yes</option>' +
-                '                <option value="L">L - Hello</option>' +
-                '                <option value="S">S - Smile</option>' +
-                '                <option value="K">K - Kill</option>' +
-                '                <option value="H">H - Help</option>' +
-                '                <option value="U">U - Custom Clown</option>' +
-                '                <option value="V">V - Custom Skull</option>' +
-                '            </select>' +
-                '        </div>' +
-                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
-                '            <div class="setting-label">Speed (Frame rate)</div>' +
-                '            <select class="toolbox-select" id="macro-speed">' +
-                '                <option value="300">Fast (300ms)</option>' +
-                '                <option value="500" selected>Normal (500ms)</option>' +
-                '                <option value="800">Slow (800ms)</option>' +
-                '                <option value="1200">Very Slow (1.2s)</option>' +
-                '            </select>' +
-                '        </div>' +
-                '    </div>' +
-                '</div>';
-            document.body.appendChild(div);
-
-            document.getElementById('close-toolbox').addEventListener('click', function() {
-                var panel = document.getElementById('anos-toolbox');
-                panel.classList.remove('visible');
-                setTimeout(function() { panel.style.display = 'none'; }, 300);
-            });
-
-            document.getElementById('cheat-zoom').addEventListener('change', function(e) {
-                window.modSettings.fovEnabled = e.target.checked;
-            });
-
-            document.getElementById('cheat-noobpass').addEventListener('change', function(e) {
-                window.modSettings.noobPassEnabled = e.target.checked;
-            });
-
-            document.getElementById('cheat-fastrespawn').addEventListener('change', function(e) {
-                window.modSettings.fastRespawnEnabled = e.target.checked;
-            });
-            document.getElementById('cheat-aimbot').addEventListener('change', function(e) {
-                window.modSettings.aimbotEnabled = e.target.checked;
-            });
-
-            document.getElementById('macro-gif-toggle').addEventListener('change', function(e) {
-                window.modSettings.gifMacroEnabled = e.target.checked;
-                if (e.target.checked) {
-                    window.startGifMacro();
-                } else {
-                    window.stopGifMacro();
-                }
-            });
-
-            document.getElementById('macro-preset').addEventListener('change', function() {
-                if (window.modSettings.gifMacroEnabled) {
-                    window.startGifMacro();
-                }
-            });
-
-            document.getElementById('macro-pos3-emote').addEventListener('change', function(e) {
-                window.modSettings.lastTypedEmote = e.target.value;
-                if (window.modSettings.gifMacroEnabled) {
-                    window.startGifMacro();
-                }
-            });
-
-            document.getElementById('macro-speed').addEventListener('change', function() {
-                if (window.modSettings.gifMacroEnabled) {
-                    window.startGifMacro();
-                }
-            });
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initAnosToolbox);
-        } else {
-            initAnosToolbox();
-        }
-
-        window.addEventListener('keydown', function(e) {
-            var isA = (e.code === 'KeyA' || e.keyCode === 65 || (e.key && e.key.toLowerCase() === 'a'));
-            if (!e.altKey || !isA || e.repeat) return;
-
-            e.preventDefault();
-            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-            if (e.stopPropagation) e.stopPropagation();
-
-            var panel = document.getElementById('anos-toolbox');
-            if (!panel) {
-                initAnosToolbox();
-                panel = document.getElementById('anos-toolbox');
-            }
-            if (!panel) return;
-
-            if (panel.classList.contains('visible')) {
-                panel.classList.remove('visible');
-                setTimeout(function() { panel.style.display = 'none'; }, 300);
-            } else {
-                panel.style.display = 'flex';
-                panel.offsetHeight;
-                panel.classList.add('visible');
-            }
-        }, true);
-
-        // --- AIMBOT LOGIC & WEBSOCKET INTERCEPTION ---
-        function getAimbotTargetAngle() {
-            var game = window.gameInstance;
-            if (!game || !game.I0lO1 || !game.IO1OO || !game.IO1OO.lOII1 || !game.IO1OO.lOII1.OI0I0) return null;
-            
-            var myShipStatus = game.I0lO1.status;
-            if (!myShipStatus || !myShipStatus.alive) return null;
-            
-            var myX = myShipStatus.x;
-            var myY = myShipStatus.y;
-            var myTeam = myShipStatus.team;
-            
-            var enemies = game.IO1OO.lOII1.OI0I0;
-            var closestEnemy = null;
-            var minDist = Infinity;
-            var mapSize = 800; // default
-            
-            if (game.mode && game.mode.options) {
-                mapSize = (game.mode.options.map_size * 10) || 800;
-            }
-            
-            for (var id in enemies) {
-                if (!enemies.hasOwnProperty(id)) continue;
-                var enemyWrapper = enemies[id];
-                if (!enemyWrapper || !enemyWrapper.lOOlI || !enemyWrapper.lOOlI.status) continue;
-                
-                var enemyStatus = enemyWrapper.lOOlI.status;
-                if (!enemyStatus.alive) continue;
-                if (myTeam !== undefined && enemyStatus.team === myTeam) continue; // ignore teammates
-                
-                var sX = enemyStatus.x;
-                var sY = enemyStatus.y;
-                
-                var dx = sX - myX;
-                var dy = sY - myY;
-                
-                // Wrap-around math
-                dx = ((dx % mapSize) + mapSize) % mapSize;
-                if (dx > mapSize / 2) dx -= mapSize;
-                dy = ((dy % mapSize) + mapSize) % mapSize;
-                if (dy > mapSize / 2) dy -= mapSize;
-                
-                var dist = dx * dx + dy * dy;
-                if (dist < minDist) {
-                    minDist = dist;
-                    closestEnemy = enemyStatus;
-                }
-            }
-            
-            if (closestEnemy) {
-                var sX = closestEnemy.x;
-                var sY = closestEnemy.y;
-                var sVx = closestEnemy.vx || 0;
-                var sVy = closestEnemy.vy || 0;
-                
-                var dx = sX - myX;
-                var dy = sY - myY;
-                
-                dx = ((dx % mapSize) + mapSize) % mapSize;
-                if (dx > mapSize / 2) dx -= mapSize;
-                dy = ((dy % mapSize) + mapSize) % mapSize;
-                if (dy > mapSize / 2) dy -= mapSize;
-                
-                var distance = Math.sqrt(dx * dx + dy * dy);
-                if (distance > 10) {
-                    var bulletSpeed = 14; 
-                    var travelTime = distance / bulletSpeed;
-                    
-                    dx += sVx * travelTime;
-                    dy += sVy * travelTime;
-                }
-                
-                // Math.atan2 instead of -Math.atan2 because we use world coordinates directly
-                var angle = Math.atan2(dy, dx) * 180 / Math.PI;
-                if (angle < 0) angle += 360;
-                
-                return {
-                    angle: angle,
-                    distance: distance,
-                    fire: true,
-                    thrust: distance > 120
-                };
-            }
-            return null;
-        }
-
-        // Intercept client WebSocket packets
-        const originalSend = WebSocket.prototype.send;
-        WebSocket.prototype.send = function(data) {
-            if (typeof data === 'string' && /^\d+$/.test(data)) {
-                let val = parseInt(data);
-                if (window.modSettings && window.modSettings.aimbotEnabled) {
-                    let targetInfo = getAimbotTargetAngle();
-                    if (targetInfo !== null) {
-                        let flags = val & ~4095; // Supprime l'angle d'origine
-                        
-                        // Application des actions automatiques
-                        if (targetInfo.fire) flags |= 8192;
-                        if (targetInfo.thrust) flags |= 4096;
-                        else flags &= ~4096;
-
-                        val = flags + (Math.round(targetInfo.angle) % 360);
-                        data = val.toString();
-                    }
-                }
-            }
-            return originalSend.apply(this, arguments);
-        };
-    })();
-})();
-</script>
-</body>
-</html>
+                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;
