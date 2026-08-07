@@ -3192,9 +3192,11 @@
         var vocab = chat.Ol111.vocabulary;
         
         if (!vocab['J']) vocab['J'] = { icon: '\u2591', text: 'Blank' };
-        if (!vocab['U']) vocab['U'] = { icon: '\ud83e\udd21', text: 'Clown' };
         if (!vocab['I']) vocab['I'] = { icon: '\ud83d\udd25', text: 'Fire' };
         if (!vocab['V']) vocab['V'] = { icon: '\ud83d\udc80', text: 'Skull' };
+        // Clown : écrase volontairement E (l'émote vanille "Me"), seule touche réellement
+        // libre pour l'utilisateur (U=upgrade, C refusée, toutes les autres prises).
+        vocab['E'] = { icon: '\ud83e\udd21', text: 'Clown' };
 
         // === Ajout des 4 émotes custom comme boutons de la 5ème ligne de la grille vanilla ===
         // Le chatpanel vanilla construit ses boutons une seule fois au chargement, en plaçant
@@ -3206,7 +3208,7 @@
         try {
             var customEmotes = [
                 { key: 'J', icon: '\u2591', text: 'Blank' },
-                { key: 'U', icon: '\ud83e\udd21', text: 'Clown' },
+                { key: 'E', icon: '\ud83e\udd21', text: 'Clown' },
                 { key: 'I', icon: '\ud83d\udd25', text: 'Fire' },
                 { key: 'V', icon: '\ud83d\udc80', text: 'Skull' }
             ];
@@ -3224,21 +3226,18 @@
                     function(key) { return function() { chat.typed(key); }; }(ce.key));
                 // Positionne en dernière ligne, colonne progresse ; le .add liste tous les boutons
                 // y compris existants -> on applique une grille 5x4 (index global)
-                var idx = chat.buttons.length + added;
+                var idx = (chat.buttons.length + added);
                 var col = idx % 4;
                 var row = Math.floor(idx / 4);
+                // Même matrice de placement que le vanilla : (col+1)/5 pour les colonnes,
+                // .25*row pour les lignes. On NE touche PAS aux boutons existants (ils gardent
+                // leur position) — on ajoute simplement les customs sur la ligne suivante.
                 chat.add(newBtn, [(col + 1) / 5 + .01, .25 * row + .01, 1/5 - .02, .23]);
                 chat.buttons.push(newBtn);
                 added++;
             }
-            // Repositionne TOUS les boutons (existants + customs) en grille compacte 5x4
-            var allBtns = chat.buttons || [];
-            for (var i = 0; i < allBtns.length; i++) {
-                var c = i % 4;
-                var r = Math.floor(i / 4);
-                // Taille réduite pour tenir 5 lignes ; row compressé (0.19)
-                allBtns[i].O10lO = allBtns[i].O00OI = [(c + 1) / 5 + .01, .19 * r + .01, 1/5 - .02, .17];
-            }
+            // NE PAS repositionner les boutons existants : ça cassait la grille vanilla.
+            // Les customs sont ajoutés sur une nouvelle ligne, le vanilla reste intact.
             chat.__customEmotesInjected = true;
         } catch (err) {
             // ne rien casser si le chatpanel a une structure inattendue
@@ -3259,7 +3258,7 @@
         if (e.altKey || e.ctrlKey || e.metaKey) return;
         if (!e.key) return;
         var char = e.key.toUpperCase();
-        var vanillaKeys = ['Y', 'G', 'P', 'B', 'T', 'F', 'A', 'H', 'K', 'Q', 'X', 'L', 'O', 'E', 'M', 'N', 'D', 'S', 'J', 'U', 'I', 'V'];
+        var vanillaKeys = ['Y', 'G', 'P', 'B', 'T', 'F', 'A', 'H', 'K', 'Q', 'X', 'L', 'O', 'E', 'M', 'N', 'D', 'S', 'J', 'I', 'V'];
         if (vanillaKeys.indexOf(char) !== -1) {
             window.modSettings.lastTypedEmote = char;
             var pos3Select = document.getElementById('macro-pos3-emote');
@@ -3296,10 +3295,10 @@
                 ['G', 'X', 'Y', 'P', 'L', 'G', 'X']
             ],
             fusion: [
-                ['G', 'J', 'Y', 'U', 'K', 'G'],
-                ['Y', 'U', 'G', 'J', 'K', 'Y'],
-                ['J', 'G', 'U', 'Y', 'K', 'J'],
-                ['G', 'J', 'U', 'Y', 'U', 'J', 'G']
+                ['G', 'J', 'Y', 'E', 'K', 'G'],
+                ['Y', 'E', 'G', 'J', 'K', 'Y'],
+                ['J', 'G', 'E', 'Y', 'K', 'J'],
+                ['G', 'J', 'E', 'Y', 'E', 'J', 'G']
             ],
             mode_tng: [
                 ['T', 'N', 'G', 'J', 'J'],
@@ -3555,7 +3554,7 @@
                 '                <option value="S">S - Smile</option>' +
                 '                <option value="K">K - Kill</option>' +
                 '                <option value="H">H - Help</option>' +
-                '                <option value="U">U - Custom Clown</option>' +
+                '                <option value="E">E - Custom Clown</option>' +
                 '                <option value="V">V - Custom Skull</option>' +
                 '            </select>' +
                 '        </div>' +
@@ -3751,9 +3750,12 @@
         var isMouseLeftDown = false;   // clic gauche = tir = moment où l'aimbot force la visée
         window.addEventListener('mousedown', function(e) { if (e.button === 2) isMouseRightDown = true; if (e.button === 0) isMouseLeftDown = true; }, true);
         window.addEventListener('mouseup', function(e) { if (e.button === 2) isMouseRightDown = false; if (e.button === 0) isMouseLeftDown = false; }, true);
-        window.addEventListener('contextmenu', function(e) {
-            if (window.modSettings && window.modSettings.aimbotEnabled) e.preventDefault();
-        }, true);
+        // NE PAS empêcher le menu contextuel : le clic droit (which=3) est le THRUST du jeu
+        // (déplacement). Le bloquer via preventDefault empêcherait le joueur de bouger
+        // quand l'aimbot est actif. Le clic droit doit rester au contrôleur natif.
+        // window.addEventListener('contextmenu', function(e) {
+        //     if (window.modSettings && window.modSettings.aimbotEnabled) e.preventDefault();
+        // }, true);
         window.addEventListener('keydown', function(e) { if (e.key === 'Shift') isShiftDown = true; }, true);
         window.addEventListener('keyup', function(e) { if (e.key === 'Shift') isShiftDown = false; }, true);
 
@@ -3887,9 +3889,9 @@
                                 ship.l11II.Il00I = ship.status.Il00I ?
                                     ship.status.Il00I * window.modSettings.aimbotRotationBoost : 2;
                             }
-                            // Couper la poussée vers l'angle pendant le verrouillage :
-                            // sinon on foncerait vers la cible.
-                            ship.l11II.up = false;
+                            // IMPORTANT : ne JAMAIS toucher à ship.l11II.up (thrust).
+                            // La poussée appartient entièrement au joueur (clic droit).
+                            // Couper up = empêche le joueur de se déplacer pendant qu'il tire.
                         } else {
                             // Visée atteinte : relâche le verrouillage, rends le contrôle au joueur
                             aimLock.active = false;
@@ -3917,7 +3919,7 @@
                                 ship.l11II.Il00I = ship.status.Il00I ?
                                     ship.status.Il00I * window.modSettings.aimbotRotationBoost : 2;
                             }
-                            ship.l11II.up = false; // ne pas foncer vers la cible pendant le verrouillage
+                            // Ne pas toucher à ship.l11II.up : la poussée reste au joueur.
                         } else {
                             aimLock.active = false;
                             aimLock.targetAngle = null;
@@ -3950,7 +3952,9 @@
             var _logFrame = 0;
 
             // Projection monde->écran, SANS matrice de caméra Three (fiable).
-            // La mini-caméra du monde lOII1.OlI1I porte {x,y} = centre de la vue en coords monde.
+            // La mini-caméra du monde lOII1.OlI1I porte {x,y} = centre de la vue en coords monde
+            // et zoom = facteur d'échelle (NON appliqué avant -> overlay décalé). On applique
+            // le zoom correctement : screen = (world - cam) * zoom + centre.
             function worldToScreen(wx, wy) {
                 var game = window.gameInstance;
                 var w = game && game.IO1OO && game.IO1OO.lOII1;
@@ -3958,7 +3962,11 @@
                 var cam = w.OlI1I;
                 var dw = game.display.width, dh = game.display.height;
                 if (!isFinite(cam.x) || !isFinite(cam.y)) return null;
-                return { x: (wx - cam.x) + dw / 2, y: (wy - cam.y) + dh / 2 };
+                var zoom = (cam.zoom && cam.zoom > 0) ? cam.zoom : 1;
+                return {
+                    x: (wx - cam.x) * zoom + dw / 2,
+                    y: (wy - cam.y) * zoom + dh / 2
+                };
             }
 
             function drawAimLine() {
@@ -4017,12 +4025,12 @@
             }
             requestAnimationFrame(drawAimLine);
         }
-        // Aide à la visée (ligne bleue) : désactivée par défaut (jugée inutile).
-        // Réactivable en mettant window.modSettings.aimassistEnabled = true.
-        window.modSettings.aimassistEnabled = (window.modSettings && window.modSettings.aimassistEnabled === true);
-        if (window.modSettings && window.modSettings.aimassistEnabled) {
-            setupAimAssist();
-        }
+        // Aide à la visée (ligne bleue + réticule) : PILOTÉE par la checkbox "Aim-Predict"
+        // (window.modSettings.aimPredictEnabled). setupAimAssist est lancé en permanence ;
+        // drawAimLine efface l'overlay quand aimPredictEnabled est false et le dessine quand
+        // c'est true. Plus d'ambiguïté avec un aimassistEnabled fantôme.
+        window.modSettings.aimassistEnabled = true;   // permis : c'est aimPredictEnabled qui commande le rendu
+        setupAimAssist();
     })();
 })();
 </script>
