@@ -3100,36 +3100,113 @@
     }
 
     window.modSettings = {
+        __version: 'clean-v2-20260807',
         fovEnabled: true,
+        fastRespawnEnabled: false,
         gifMacroEnabled: false,
-        aimbotEnabled: false,
-        aimPredictEnabled: false,
-        aimbotRotationBoost: 3.0     // multiplier de vitesse de rotation (tourner plus vite)
+        neonHudEnabled: true,
+        homeThemeEnabled: true
     };
 
-    // ===== THÈME PAGE D'ACCUEIL (style cohérent jaune/verre, réversible) =====
-    // Applique au menu d'accueil du jeu un fond légèrement teinté et des accents
-    // ambrés. Léger (ne déplace rien) et désactivable via window.modSettings.homeThemeEnabled.
-    window.modSettings.homeThemeEnabled = true;
+    // ===== THÈME PAGE D'ACCUEIL (néon violet/cyan, réversible) =====
     (function applyHomeTheme() {
         if (!window.modSettings.homeThemeEnabled) return;
         var s = document.createElement('style');
         s.id = 'anos-home-theme';
         s.textContent = [
-            '/* Thème accueil — fond teinté doux */',
-            '#home, body {',
-            '  background: linear-gradient(180deg, rgba(15,25,45,0.96) 0%, rgba(6,12,24,0.98) 100%) !important;',
+            '/* ===== THÈME NÉON VIBRANT — sélecteurs réels de la page ===== */',
+            '',
+            '/* --- Fond de page : dégradé profond violet/bleu --- */',
+            'body, #content, #home {',
+            '  background: radial-gradient(ellipse at 20% 0%, #0b1030 0%, #070a1c 55%, #020510 100%) !important;',
             '}',
-            '/* Accents ambrés cohérents avec le toolbox */',
-            '#home a, #home button, .social a, #home input[type=button] {',
-            '  transition: box-shadow .25s ease, transform .2s ease, color .2s ease;',
+            '',
+            '/* --- Logo : glow néon --- */',
+            '#logo img {',
+            '  filter: drop-shadow(0 0 18px rgba(0,240,255,0.6)) drop-shadow(0 0 30px rgba(255,45,247,0.4)) !important;',
             '}',
-            '#home a:hover, #home button:hover {',
-            '  box-shadow: 0 0 16px rgba(230,184,0,0.35) !important;',
+            '',
+            '/* --- Titres et labels : cyan lumineux --- */',
+            '#content h1, #content h2, #content h3, #content h4,',
+            '#game_modes .section-title, #home h2, .event-time {',
+            '  color: #00e5ff !important;',
+            '  text-shadow: 0 0 12px rgba(0,240,255,0.5), 0 0 24px rgba(0,200,255,0.25) !important;',
             '}',
-            '/* Logo / titres légèrement lumineux */',
-            '#home h1, #home h2, #home .logo {',
-            '  text-shadow: 0 0 18px rgba(230,184,0,0.35) !important;',
+            '',
+            '/* --- Boutons JOUER et modes : bordure néon --- */',
+            '.playbtn, .playbtn *,',
+            '#game_modes .game_mode, #game_modes .mode,',
+            '#_survival, #_team,',
+            '#content button, #content input[type=button], #content input[type=submit],',
+            '#home button, #home input[type=button],',
+            '#respawn_btn, #continue_btn, #refresh_btn {',
+            '  border: 1px solid rgba(0,240,255,0.5) !important;',
+            '  box-shadow: 0 0 10px rgba(0,240,255,0.3), inset 0 0 6px rgba(0,240,255,0.1) !important;',
+            '  color: #d0f4ff !important;',
+            '  background: rgba(5,15,35,0.7) !important;',
+            '  transition: all .25s ease;',
+            '  text-shadow: 0 0 6px rgba(0,240,255,0.4);',
+            '}',
+            '',
+            '/* --- Hover boutons : bordure magenta --- */',
+            '.playbtn:hover, #game_modes .game_mode:hover,',
+            '#content button:hover, #home button:hover,',
+            '#respawn_btn:hover, #continue_btn:hover {',
+            '  border-color: #ff2df7 !important;',
+            '  box-shadow: 0 0 20px rgba(255,45,247,0.55), inset 0 0 10px rgba(255,45,247,0.2) !important;',
+            '  color: #fff !important;',
+            '  text-shadow: 0 0 10px rgba(255,45,247,0.6);',
+            '  transform: translateY(-1px);',
+            '}',
+            '',
+            '/* --- Mode sélectionné (actif) : glow cyan fort --- */',
+            '#game_modes .selected, #game_modes .active,',
+            '#home .selected, #home .active {',
+            '  border-color: #00f0ff !important;',
+            '  box-shadow: 0 0 24px rgba(0,240,255,0.6), 0 0 40px rgba(0,200,255,0.3) !important;',
+            '  background: rgba(0,30,60,0.8) !important;',
+            '}',
+            '',
+            '/* --- Champ nom (input) --- */',
+            '#player input, .inputwrapper input, #content input[type=text], #home input[type=text],',
+            '#playername, input[name=playername] {',
+            '  border: 1px solid rgba(0,240,255,0.4) !important;',
+            '  background: rgba(5,15,35,0.6) !important;',
+            '  color: #c0e8ff !important;',
+            '  box-shadow: 0 0 8px rgba(0,240,255,0.2) !important;',
+            '}',
+            '#player input:focus, .inputwrapper input:focus {',
+            '  border-color: #ff2df7 !important;',
+            '  box-shadow: 0 0 14px rgba(255,45,247,0.45) !important;',
+            '}',
+            '',
+            '/* --- Liens sociaux et footer --- */',
+            '.followtools a, #content a, #home a, .infos a {',
+            '  color: #7cd8ff !important;',
+            '  text-shadow: 0 0 6px rgba(0,240,255,0.4);',
+            '  transition: all .2s ease;',
+            '}',
+            '.followtools a:hover, #content a:hover, #home a:hover, .infos a:hover {',
+            '  color: #ffb0f0 !important;',
+            '  text-shadow: 0 0 12px rgba(255,45,247,0.6);',
+            '}',
+            '',
+            '/* --- Donation box --- */',
+            '#donatebox, #donate {',
+            '  border: 1px solid rgba(0,240,255,0.3) !important;',
+            '  box-shadow: 0 0 16px rgba(0,240,255,0.2) !important;',
+            '  background: rgba(5,15,35,0.5) !important;',
+            '}',
+            '.donate-btn, #donatebtn {',
+            '  border-color: rgba(255,45,247,0.5) !important;',
+            '  box-shadow: 0 0 10px rgba(255,45,247,0.35) !important;',
+            '  color: #ffe0f8 !important;',
+            '}',
+            '',
+            '/* --- Barres/séparateurs --- */',
+            '#content hr, #home hr {',
+            '  border-color: rgba(0,240,255,0.3) !important;',
+            '  box-shadow: 0 0 6px rgba(0,240,255,0.25);',
             '}'
         ].join('\n');
         document.head.appendChild(s);
@@ -3156,6 +3233,29 @@
             game.respawn();
             var respawnBtn = document.getElementById('respawn_btn');
             if (respawnBtn) respawnBtn.click();
+        }
+
+        // ===== THÈME HUD NÉON (cyan) EN JEU =====
+        // Force la hue du HUD Starblast à une teinte cyan lumineuse quand neonHudEnabled.
+        // Le HUD (Il10l) propage sa couleur à tous les panneaux via setHue ; on mémorise la
+        // hue d'origine pour pouvoir la restaurer si on désactive le thème.
+        if (window.modSettings && window.modSettings.neonHudEnabled) {
+            var neonScreen = game.display && game.display.screen && game.display.screen.Il10l;
+            if (neonScreen) {
+                if (window.__origHudHue === undefined) {
+                    window.__origHudHue = neonScreen.hue !== undefined ? neonScreen.hue : 0;
+                }
+                var NEON_HUE = 185;   // ~cyan dans le modèle hsla(hue, ...) de Starblast
+                if (neonScreen.hue !== NEON_HUE && typeof neonScreen.setHue === 'function') {
+                    neonScreen.setHue(NEON_HUE);
+                }
+            }
+        } else if (window.__origHudHue !== undefined) {
+            var _ns = game.display && game.display.screen && game.display.screen.Il10l;
+            if (_ns && typeof _ns.setHue === 'function' && _ns.hue !== window.__origHudHue) {
+                _ns.setHue(window.__origHudHue);
+            }
+            window.__origHudHue = undefined;
         }
     }, 200);
 
@@ -3224,15 +3324,14 @@
                 if (exists) continue;
                 var newBtn = new btnClass(chat.Ol111 || game, ce.text, ce.icon, ce.key,
                     function(key) { return function() { chat.typed(key); }; }(ce.key));
-                // Positionne en dernière ligne, colonne progresse ; le .add liste tous les boutons
-                // y compris existants -> on applique une grille 5x4 (index global)
+                // Positionne en dernière ligne, colonne progresse. Pour les lignes
+                // au-delà de la 4ème, on réduit l'espacement (.19 au lieu de .25)
+                // car le chatpanel n'a que la place pour 4 lignes à .25.
                 var idx = (chat.buttons.length + added);
                 var col = idx % 4;
                 var row = Math.floor(idx / 4);
-                // Même matrice de placement que le vanilla : (col+1)/5 pour les colonnes,
-                // .25*row pour les lignes. On NE touche PAS aux boutons existants (ils gardent
-                // leur position) — on ajoute simplement les customs sur la ligne suivante.
-                chat.add(newBtn, [(col + 1) / 5 + .01, .25 * row + .01, 1/5 - .02, .23]);
+                var rowSpacing = row >= 4 ? .19 : .25;
+                chat.add(newBtn, [(col + 1) / 5 + .01, rowSpacing * row + .01, 1/5 - .02, .23]);
                 chat.buttons.push(newBtn);
                 added++;
             }
@@ -3408,21 +3507,20 @@
 
             var style = document.createElement('style');
             style.innerHTML = "" +
-                "/* Style inspiré des panneaux de référence (settingatabses.js) : " +
-                "semi-transparent jaune, border-radius 20px, blur 5px, draggable. */" +
+                "/* Style simple, couleurs sobres comme les panneaux du jeu */" +
                 "#anos-toolbox {" +
                 "    position: fixed;" +
                 "    left: auto;" +
                 "    top: 60px;" +
                 "    right: 20px;" +
-                "    width: 440px;" +
-                "    background: hsla(60, 100%, 50%, 0.22);" +
-                "    backdrop-filter: blur(5px);" +
-                "    -webkit-backdrop-filter: blur(5px);" +
-                "    border: 1px solid hsla(60,100%,80%,0.35);" +
-                "    border-radius: 20px;" +
-                "    box-shadow: 0 0 10px rgba(0,0,0,0.3);" +
-                "    color: #000;" +
+                "    width: 360px;" +
+                "    background: rgba(10,14,24,0.92);" +
+                "    backdrop-filter: blur(8px);" +
+                "    -webkit-backdrop-filter: blur(8px);" +
+                "    border: 1px solid rgba(255,255,255,0.12);" +
+                "    border-radius: 12px;" +
+                "    box-shadow: 0 8px 32px rgba(0,0,0,0.5);" +
+                "    color: #c8d6e5;" +
                 "    font-family: 'Play', 'Segoe UI', sans-serif;" +
                 "    z-index: 999999;" +
                 "    user-select: none;" +
@@ -3430,38 +3528,48 @@
                 "    display: none;" +
                 "    flex-direction: column;" +
                 "    overflow: hidden;" +
-                "    padding: 40px;" +
+                "    padding: 24px 20px 20px 20px;" +
                 "}" +
-                "#anos-toolbox.visible { display: flex; opacity: 1; }" +
-                ".toolbox-header { position: absolute; top: 0; left: 0; right: 0; padding: 14px 16px; " +
-                "  display: flex; justify-content: space-between; align-items: center; cursor: move; " +
-                "  border-bottom: 1px solid hsla(60,100%,80%,0.3); }" +
-                ".toolbox-header h3 { margin: 0; font-weight: 600; font-size: 15px; color: #000; }" +
-                ".toolbox-header .close-btn { cursor: pointer; font-size: 16px; color: #555; }" +
-                ".toolbox-header .close-btn:hover { color: #b33; }" +
-                ".toolbox-body { margin-top: 32px; max-height: 480px; overflow-y: auto; }" +
-                ".toolbox-section { margin-bottom: 14px; padding-bottom: 12px; border-bottom: 1px solid hsla(60,100%,80%,0.3); }" +
-                ".toolbox-section:last-child { margin-bottom: 0; padding-bottom: 0; border-bottom: none; }" +
-                ".section-title { font-size: 11px; text-transform: uppercase; color: #553d00; margin-bottom: 12px; letter-spacing: 1px; font-weight: 600; }" +
-                ".setting-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }" +
+                "#anos-toolbox.visible { display: flex; }" +
+                ".toolbox-header { display: flex; justify-content: space-between; align-items: center;" +
+                "  margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);" +
+                "  cursor: move; }" +
+                ".toolbox-header h3 { margin: 0; font-weight: 400; font-size: 14px; color: #8aa4c0; letter-spacing: 1px; }" +
+                ".toolbox-header .close-btn { cursor: pointer; font-size: 18px; color: #556; }" +
+                ".toolbox-header .close-btn:hover { color: #c44; }" +
+                ".toolbox-body { max-height: 420px; overflow-y: auto; }" +
+                ".toolbox-section { margin-bottom: 14px; }" +
+                ".toolbox-section:last-child { margin-bottom: 0; }" +
+                ".section-title { font-size: 10px; text-transform: uppercase; color: #5a7490;" +
+                "  margin-bottom: 10px; letter-spacing: 1.5px; font-weight: 600; }" +
+                ".setting-row { display: flex; justify-content: space-between; align-items: center;" +
+                "  margin-bottom: 10px; padding: 6px 0; }" +
                 ".setting-row:last-child { margin-bottom: 0; }" +
-                ".setting-info { display: flex; flex-direction: column; padding-right: 10px; }" +
-                ".setting-label { font-size: 13px; font-weight: 500; }" +
-                ".setting-desc { font-size: 10px; color: #5a4a10; margin-top: 1px; }" +
-                ".switch { position: relative; display: inline-block; width: 40px; height: 22px; flex-shrink: 0; }" +
+                ".setting-info { display: flex; flex-direction: column; padding-right: 12px; flex: 1; }" +
+                ".setting-label { font-size: 12px; font-weight: 500; color: #bccfe0; }" +
+                ".setting-desc { font-size: 9px; color: #60758a; margin-top: 1px; }" +
+                ".switch { position: relative; display: inline-block; width: 36px; height: 20px;" +
+                "  flex-shrink: 0; }" +
                 ".switch input { opacity: 0; width: 0; height: 0; }" +
-                ".slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.2); transition: 0.25s; border-radius: 22px; }" +
-                ".slider:before { position: absolute; content:''; height: 14px; width: 14px; left: 3px; bottom: 3px; background:#fff; transition: 0.25s; border-radius: 50%; }" +
-                "input:checked + .slider { background: #e6b800; }" +
-                "input:checked + .slider:before { transform: translateX(18px); }" +
-                ".toolbox-select { width: 100%; background: rgba(255,255,255,0.5); border: 1px solid rgba(0,0,0,0.2); border-radius: 6px; color: #000; padding: 6px 10px; font-size: 12px; outline: none; cursor: pointer; margin-top: 4px; }" +
-                "/* Bouton lumineux de référence (style settingatabses.js 'Apply') */" +
-                ".anon-btn { " +
-                "    padding: 6px 10px; font-size: 13px; cursor: pointer; margin: 5px 0 0 0; text-align: center; " +
-                "    background: radial-gradient(ellipse at center, hsla(60,100%,0%,1) 0%, hsla(60,100%,70%,0.5) 150%); " +
-                "    box-shadow: 0 0 6px hsla(60,100%,80%,1); text-shadow: 0 0 7px hsla(60,100%,80%,1); " +
-                "    color: hsla(60,100%,90%,0.85); font-family: 'Play', sans-serif; border: 0; border-radius: 20px; width: 100%; " +
-                "}";
+                ".slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;" +
+                "  background: rgba(255,255,255,0.08); transition: 0.2s; border-radius: 20px;" +
+                "  border: 1px solid rgba(255,255,255,0.12); }" +
+                ".slider:before { position: absolute; content:''; height: 12px; width: 12px;" +
+                "  left: 2px; bottom: 2px; background: #8899aa; transition: 0.2s; border-radius: 50%; }" +
+                "input:checked + .slider { background: #2d6fb4; border-color: #4a90d9; }" +
+                "input:checked + .slider:before { transform: translateX(16px); background: #fff; }" +
+                ".toolbox-select { width: 100%; background: rgba(255,255,255,0.05);" +
+                "  border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #c8d6e5;" +
+                "  padding: 5px 8px; font-size: 11px; outline: none; cursor: pointer; margin-top: 4px; }" +
+                ".toolbox-select option { background: #1a1e2e; color: #c8d6e5; }" +
+                ".anon-btn { padding: 5px 10px; font-size: 12px; cursor: pointer; margin: 4px 0 0 0;" +
+                "  text-align: center; background: rgba(45,111,180,0.2); border: 1px solid rgba(74,144,217,0.3);" +
+                "  color: #8ab8e0; font-family: 'Play', sans-serif; border-radius: 6px; width: 100%; }" +
+                ".anon-btn:hover { background: rgba(45,111,180,0.35); }" +
+                "/* scrollbar fine */" +
+                ".toolbox-body::-webkit-scrollbar { width: 4px; }" +
+                ".toolbox-body::-webkit-scrollbar-track { background: transparent; }" +
+                ".toolbox-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }";
             document.head.appendChild(style);
 
             var div = document.createElement('div');
@@ -3494,26 +3602,6 @@
                 '            </div>' +
                 '            <label class="switch">' +
                 '                <input type="checkbox" id="cheat-fastrespawn">' +
-                '                <span class="slider"></span>' +
-                '            </label>' +
-                '        </div>' +
-                '        <div class="setting-row">' +
-                '            <div class="setting-info">' +
-                '                <span class="setting-label">Aimbot (Auto-Aim)</span>' +
-                '                <span class="setting-desc">Auto-aim at the nearest enemy ship</span>' +
-                '            </div>' +
-                '            <label class="switch">' +
-                '                <input type="checkbox" id="cheat-aimbot">' +
-                '                <span class="slider"></span>' +
-                '            </label>' +
-                '        </div>' +
-                '        <div class="setting-row">' +
-                '            <div class="setting-info">' +
-                '                <span class="setting-label">Aim-Predict (Visée Anticipée)</span>' +
-                '                <span class="setting-desc">Anticipe la trajectoire de l\'ennemi selon la vitesse des lasers</span>' +
-                '            </div>' +
-                '            <label class="switch">' +
-                '                <input type="checkbox" id="cheat-aimpredict">' +
                 '                <span class="slider"></span>' +
                 '            </label>' +
                 '        </div>' +
@@ -3574,6 +3662,11 @@
                 '</div>';
             document.body.appendChild(div);
 
+            // Initialiser l'état des checkboxes depuis les modSettings
+            document.getElementById('cheat-zoom').checked = window.modSettings.fovEnabled;
+            document.getElementById('cheat-fastrespawn').checked = window.modSettings.fastRespawnEnabled;
+            document.getElementById('macro-gif-toggle').checked = window.modSettings.gifMacroEnabled;
+
             document.getElementById('close-toolbox').addEventListener('click', function() {
                 var panel = document.getElementById('anos-toolbox');
                 panel.classList.remove('visible');
@@ -3586,13 +3679,6 @@
 
             document.getElementById('cheat-fastrespawn').addEventListener('change', function(e) {
                 window.modSettings.fastRespawnEnabled = e.target.checked;
-            });
-            document.getElementById('cheat-aimbot').addEventListener('change', function(e) {
-                window.modSettings.aimbotEnabled = e.target.checked;
-            });
-
-            document.getElementById('cheat-aimpredict').addEventListener('change', function(e) {
-                window.modSettings.aimPredictEnabled = e.target.checked;
             });
 
             document.getElementById('macro-gif-toggle').addEventListener('change', function(e) {
@@ -3740,297 +3826,6 @@
             }
         }, true);
 
-                // ===== AIMBOT & AIM-ASSIST (réparé) — hook sur le contrôleur natif O0OlI =====
-        // Méthode fiable : on hooke O0OlI.prototype.I0I00 / mouseMove (la boucle de contrôle
-        // native du vaisseau) et on force ship.l11II.angle au bon moment, AVANT que la boucle
-        // ne l'envoie. On applique aussi les améliorations de gameplay extraites de bot.js :
-        // ciblage prioritaire, évitement d'astéroïdes (steering), anti-tir-ami, burst mode.
-        var isMouseRightDown = false;
-        var isShiftDown = false;
-        var isMouseLeftDown = false;   // clic gauche = tir = moment où l'aimbot force la visée
-        window.addEventListener('mousedown', function(e) { if (e.button === 2) isMouseRightDown = true; if (e.button === 0) isMouseLeftDown = true; }, true);
-        window.addEventListener('mouseup', function(e) { if (e.button === 2) isMouseRightDown = false; if (e.button === 0) isMouseLeftDown = false; }, true);
-        // NE PAS empêcher le menu contextuel : le clic droit (which=3) est le THRUST du jeu
-        // (déplacement). Le bloquer via preventDefault empêcherait le joueur de bouger
-        // quand l'aimbot est actif. Le clic droit doit rester au contrôleur natif.
-        // window.addEventListener('contextmenu', function(e) {
-        //     if (window.modSettings && window.modSettings.aimbotEnabled) e.preventDefault();
-        // }, true);
-        window.addEventListener('keydown', function(e) { if (e.key === 'Shift') isShiftDown = true; }, true);
-        window.addEventListener('keyup', function(e) { if (e.key === 'Shift') isShiftDown = false; }, true);
-
-        // Calcul de la cible + angle de tir. Retourne { angle, targetX, targetY, distance }
-        // ou null. Intègre : ciblage prioritaire (ennemi proche, puis astéroïde), aim-predict
-        // (lead), évitement d'astéroïdes (steering), anti-tir-ami.
-        var BULLET_SPEED = 14; // vitesse de tir de référence (comme bot.js)
-
-        function getAimTargetInfo() {
-            var game = window.gameInstance;
-            if (!game) return null;
-            var playerShip = game.I0lO1;
-            var playerStatus = (playerShip && playerShip.status) ? playerShip.status : null;
-            if (!playerStatus || !playerStatus.alive) return null;
-
-            var world = game.IO1OO && game.IO1OO.lOII1;
-            if (!world) return null;
-            var ships = world.ships || [];
-
-            var mapSize = (game.OI0ll) ? (game.size || game.OI0ll * 2) : 800;
-            var myTeam = playerStatus.team;
-
-            // --- 1. Sélection de la cible (ennemi, puis astéroïde) ---
-            var best = null;   // { dx, dy, dist, vx, vy, isEnemy }
-            var bestIsEnemy = false;
-            var minDist = Infinity;
-
-            for (var i = 0; i < ships.length; i++) {
-                var sObj = ships[i];
-                if (!sObj) continue;
-                var st = (sObj.lOOlI && sObj.lOOlI.status) ? sObj.lOOlI.status : null;
-                if (!st) continue;
-
-                // Filtrer soi-même, morts, invulnérables
-                if (st.id !== undefined && playerStatus.id !== undefined && st.id === playerStatus.id) continue;
-                if (!st.alive) continue;
-                if (st.invulnerable) continue;
-
-                // Filtrer alliés (friendly / team)
-                if (st.friendly || (playerStatus.friendly && st.friendly === playerStatus.friendly)) continue;
-                if (myTeam !== undefined && st.team !== undefined && st.team === myTeam) continue;
-
-                var dx = st.x - playerStatus.x;
-                var dy = st.y - playerStatus.y;
-                dx = ((dx % mapSize) + mapSize) % mapSize;
-                if (dx > mapSize / 2) dx -= mapSize;
-                dy = ((dy % mapSize) + mapSize) % mapSize;
-                if (dy > mapSize / 2) dy -= mapSize;
-
-                var dist = dx * dx + dy * dy;
-                if (dist < minDist) {
-                    minDist = dist;
-                    best = { dx: dx, dy: dy, vx: st.O0l1l || 0, vy: st.lIOIl || 0 };
-                    bestIsEnemy = true;
-                }
-            }
-
-            if (!best) return null;
-
-            var distance = Math.sqrt(best.dx * best.dx + best.dy * best.dy);
-            var targetDx = best.dx;
-            var targetDy = best.dy;
-
-            // --- 2. Aim-predict (lead) si ennemi mobile ---
-            if (bestIsEnemy && distance > 10) {
-                var travelTime = distance / BULLET_SPEED;
-                targetDx += best.vx * travelTime;
-                targetDy += best.vy * travelTime;
-            }
-
-            // (L'évitement d'astéroïdes nécessite une structure moteur complexe ; désactivé
-            // pour fiabilité — visée directe sur la cible.)
-
-            var finalDx = targetDx;
-            var finalDy = targetDy;
-
-            // Angle Starblast : 0..360. Vérifié empiriquement : le contrôleur natif produit
-            // exactement atan2(dy,dx) en degrés (PAS l'opposé). -atan2 visait à l'opposé (bug).
-            var angleRad = Math.atan2(finalDy, finalDx);
-            var angleDeg = Math.round((angleRad / Math.PI * 180 + 360) % 360);
-
-            return {
-                angle: angleDeg,
-                distance: distance,
-                isEnemy: bestIsEnemy,
-                targetX: playerStatus.x + best.dx,  // position monde de la cible (pour l'overlay)
-                targetY: playerStatus.y + best.dy
-            };
-        }
-
-        // Hook le contrôleur natif pour un aimbot de type "verrouillage bref" :
-        // Quand tu cliques (tir), on force l'angle vers la cible UNIQUEMENT jusqu'à ce que
-        // la visée soit atteinte (seuil), puis on relâche pour te laisser le cap.
-        // Pendant le verrouillage on désactive la poussée l11II.up (sinon tu fonces vers la
-        // cible) et on s'appuie sur le strafe A/D (déplacement latéral découplé de l'angle).
-        var aimLock = { active: false, targetAngle: null };
-        var aimLockThresh = 3; // seuil (degrés) considéré comme "visée atteinte"
-
-        window.addEventListener('mousedown', function(e) {
-            if (e.button === 0 && window.modSettings && window.modSettings.aimbotEnabled) {
-                var info = getAimTargetInfo();
-                if (info) { aimLock.active = true; aimLock.targetAngle = info.angle; }
-            }
-        }, true);
-        window.addEventListener('mouseup', function(e) {
-            if (e.button === 0) aimLock.active = false;
-        }, true);
-
-        function hookStarblastControl() {
-            if (typeof O0OlI === 'undefined' || O0OlI.__aimbotHooked) return;
-            O0OlI.__aimbotHooked = true;
-
-            var origI0I00 = O0OlI.prototype.I0I00;
-            O0OlI.prototype.I0I00 = function() {
-                var ship = this.ship;
-                if (ship && ship.l11II && ship.status && aimLock.active &&
-                    window.modSettings && window.modSettings.aimbotEnabled) {
-                    // Calcule l'angle cible courant (la cible peut bouger)
-                    var info = getAimTargetInfo();
-                    if (info) {
-                        var target = info.angle;
-                        // Différence angulaire actuelle (minimale)
-                        var cur = ship.l11II.angle;
-                        var diff = ((target - cur + 540) % 360) - 180;
-
-                        // Tant que pas encore aligné : on force l'angle vers la cible
-                        if (Math.abs(diff) > aimLockThresh) {
-                            ship.l11II.angle = target;
-                            // Boost de rotation pour virer vite
-                            if (window.modSettings.aimbotRotationBoost) {
-                                ship.l11II.Il00I = ship.status.Il00I ?
-                                    ship.status.Il00I * window.modSettings.aimbotRotationBoost : 2;
-                            }
-                            // IMPORTANT : ne JAMAIS toucher à ship.l11II.up (thrust).
-                            // La poussée appartient entièrement au joueur (clic droit).
-                            // Couper up = empêche le joueur de se déplacer pendant qu'il tire.
-                        } else {
-                            // Visée atteinte : relâche le verrouillage, rends le contrôle au joueur
-                            aimLock.active = false;
-                            aimLock.targetAngle = null;
-                        }
-                        ship.O10OI();
-                    }
-                }
-                return origI0I00.apply(this, arguments);
-            };
-
-            var origMouseMove = O0OlI.prototype.mouseMove;
-            O0OlI.prototype.mouseMove = function(t, e, i) {
-                var ship = this.ship;
-                if (ship && ship.l11II && aimLock.active &&
-                    window.modSettings && window.modSettings.aimbotEnabled) {
-                    var info = getAimTargetInfo();
-                    if (info) {
-                        var target = info.angle;
-                        var cur = ship.l11II.angle;
-                        var diff = ((target - cur + 540) % 360) - 180;
-                        if (Math.abs(diff) > aimLockThresh) {
-                            ship.l11II.angle = target;
-                            if (window.modSettings.aimbotRotationBoost && ship.status) {
-                                ship.l11II.Il00I = ship.status.Il00I ?
-                                    ship.status.Il00I * window.modSettings.aimbotRotationBoost : 2;
-                            }
-                            // Ne pas toucher à ship.l11II.up : la poussée reste au joueur.
-                        } else {
-                            aimLock.active = false;
-                            aimLock.targetAngle = null;
-                        }
-                        ship.O10OI();
-                    }
-                }
-                // Ne jamais return true : on laisse mouseMove natif gérer fire (I01I1)
-                return origMouseMove.apply(this, arguments);
-            };
-        }
-        setInterval(hookStarblastControl, 500);
-
-
-// ===== AIDE À LA VISÉE PASSIVE (overlay Canvas 2D) =====
-        // Fonctionne SANS l'aimbot : il suffit de cocher "Aim-Predict". Dessine une ligne
-        // depuis le vaisseau vers le point visé (cible la plus proche, lead prédit inclus).
-        // Sûr : une simple overlay pointer-events:none ; ne touche ni au moteur ni au mod.
-        function setupAimAssist() {
-            var overlay = document.getElementById('anos-aimline');
-            if (!overlay) {
-                overlay = document.createElement('canvas');
-                overlay.id = 'anos-aimline';
-                overlay.style.cssText = 'position:fixed; top:0; left:0; width:100%; height:100%; ' +
-                    'pointer-events:none; z-index:2147483646;';
-                document.body.appendChild(overlay);
-                console.log('[AimAssist] canvas overlay créé id=anos-aimline');
-            }
-            var ctx = overlay.getContext('2d');
-            var _logFrame = 0;
-
-            // Projection monde->écran, SANS matrice de caméra Three (fiable).
-            // La mini-caméra du monde lOII1.OlI1I porte {x,y} = centre de la vue en coords monde
-            // et zoom = facteur d'échelle (NON appliqué avant -> overlay décalé). On applique
-            // le zoom correctement : screen = (world - cam) * zoom + centre.
-            function worldToScreen(wx, wy) {
-                var game = window.gameInstance;
-                var w = game && game.IO1OO && game.IO1OO.lOII1;
-                if (!w || !w.OlI1I) return null;
-                var cam = w.OlI1I;
-                var dw = game.display.width, dh = game.display.height;
-                if (!isFinite(cam.x) || !isFinite(cam.y)) return null;
-                var zoom = (cam.zoom && cam.zoom > 0) ? cam.zoom : 1;
-                return {
-                    x: (wx - cam.x) * zoom + dw / 2,
-                    y: (wy - cam.y) * zoom + dh / 2
-                };
-            }
-
-            function drawAimLine() {
-                var game = window.gameInstance;
-                var enabled = window.modSettings && window.modSettings.aimPredictEnabled;
-                var alive = game && game.I0lO1 && game.I0lO1.status && game.I0lO1.status.alive;
-                if (!enabled || !alive) {
-                    ctx.clearRect(0, 0, overlay.width || 1920, overlay.height || 1080);
-                    requestAnimationFrame(drawAimLine);
-                    return;
-                }
-
-                var cw = window.innerWidth;
-                var ch = window.innerHeight;
-                overlay.width = cw;
-                overlay.height = ch;
-
-                var info = getAimTargetInfo();
-                var p1 = worldToScreen(game.I0lO1.status.x, game.I0lO1.status.y);
-                var p2 = info ? worldToScreen(info.targetX, info.targetY) : null;
-
-                ctx.clearRect(0, 0, cw, ch);
-
-                // Log périodique
-                if (++_logFrame % 120 === 0) {
-                    console.log('[AimAssist] hasTarget=' + (!!info) + ' p1=' + JSON.stringify(p1) +
-                        ' p2=' + JSON.stringify(p2) + ' enabled=' + enabled + ' alive=' + alive);
-                }
-
-                if (!p1 || !p2) { requestAnimationFrame(drawAimLine); return; }
-
-                // Recaler pixels logiques -> pixels écran (le jeu peut être scaled)
-                var dw = game.display.width || 1920;
-                var dh = game.display.height || 1080;
-                var scaleX = cw / dw;
-                var scaleY = ch / dh;
-
-                ctx.beginPath();
-                ctx.moveTo(p1.x * scaleX, p1.y * scaleY);
-                ctx.lineTo(p2.x * scaleX, p2.y * scaleY);
-                ctx.strokeStyle = 'rgba(0, 210, 255, 0.85)';
-                ctx.lineWidth = 2;
-                ctx.shadowColor = 'rgba(0, 210, 255, 0.5)';
-                ctx.shadowBlur = 6;
-                ctx.stroke();
-                ctx.shadowBlur = 0;
-
-                // Petit réticule sur le point visé
-                ctx.beginPath();
-                ctx.arc(p2.x * scaleX, p2.y * scaleY, 5, 0, Math.PI * 2);
-                ctx.strokeStyle = 'rgba(255, 80, 80, 0.9)';
-                ctx.lineWidth = 2;
-                ctx.stroke();
-
-                requestAnimationFrame(drawAimLine);
-            }
-            requestAnimationFrame(drawAimLine);
-        }
-        // Aide à la visée (ligne bleue + réticule) : PILOTÉE par la checkbox "Aim-Predict"
-        // (window.modSettings.aimPredictEnabled). setupAimAssist est lancé en permanence ;
-        // drawAimLine efface l'overlay quand aimPredictEnabled est false et le dessine quand
-        // c'est true. Plus d'ambiguïté avec un aimassistEnabled fantôme.
-        window.modSettings.aimassistEnabled = true;   // permis : c'est aimPredictEnabled qui commande le rendu
-        setupAimAssist();
     })();
 })();
 </script>
