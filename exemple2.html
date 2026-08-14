@@ -3102,10 +3102,10 @@
     }
 
     // =========================================================================
-    // 1. CONFIGURATION DU CLIENT (MOD SETTINGS)
+    // 1. CONFIGURATION GLOBALE DU CLIENT (MOD SETTINGS)
     // =========================================================================
     window.modSettings = {
-        __version: 'unified-v5-20260814',
+        __version: 'unified-v6-20260814',
         fovEnabled: true,
         fastRespawnEnabled: false,
         gifMacroEnabled: false,
@@ -3149,143 +3149,13 @@
     })();
 
     // =========================================================================
-    // 2. STYLES CSS ULTRA-CIBLÉS ET HARMONISÉS (SANS CASSER LE LOBBY VANILLA)
+    // 2. STYLES CSS DU MOD (HARMONIEUX AVEC STARBLAST SANS CASSER LE LOBBY)
     // =========================================================================
-    (function injectGlobalTheme() {
+    (function injectModStyles() {
         var styleEl = document.createElement('style');
-        styleEl.id = 'anos-custom-theme';
+        styleEl.id = 'anos-mod-styles';
         styleEl.textContent = [
-            '/* ===== STARBLAST CYBERPUNK THEME & WINDOW SYSTEM ===== */',
-            '@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Play:wght@400;700&display=swap");',
-            '',
-            '/* --- Fond d\'ambiance spatial --- */',
-            'body, #content, #home, .main-container {',
-            '  background: radial-gradient(ellipse at 25% 15%, #0e1238 0%, #06091e 50%, #02040c 100%) !important;',
-            '  font-family: "Play", "Segoe UI", sans-serif !important;',
-            '}',
-            '',
-            '/* --- Logo Starblast avec glow néon cyan/magenta --- */',
-            '#logo img, .gamelogo {',
-            '  filter: drop-shadow(0 0 20px rgba(0,240,255,0.75)) drop-shadow(0 0 35px rgba(255,45,247,0.5)) !important;',
-            '  transition: transform 0.3s ease, filter 0.3s ease;',
-            '}',
-            '#logo img:hover {',
-            '  transform: scale(1.02);',
-            '  filter: drop-shadow(0 0 25px rgba(0,240,255,0.9)) drop-shadow(0 0 45px rgba(255,45,247,0.7)) !important;',
-            '}',
-            '',
-            '/* --- Titres principaux du lobby --- */',
-            '#content h1, #content h2, #content h3, #content h4,',
-            '#game_modes .section-title, #home h2, .event-time, .title {',
-            '  font-family: "Orbitron", "Play", sans-serif !important;',
-            '  color: #00f0ff !important;',
-            '  letter-spacing: 1.5px !important;',
-            '  text-shadow: 0 0 12px rgba(0,240,255,0.6), 0 0 25px rgba(0,200,255,0.3) !important;',
-            '}',
-            '',
-            '/* --- Bouton PLAY ciblé proprement --- */',
-            '#player #play {',
-            '  font-family: "Orbitron", sans-serif !important;',
-            '  color: #ffffff !important;',
-            '  text-shadow: 0 0 10px rgba(0,240,255,0.8), 0 0 20px rgba(0,240,255,0.4) !important;',
-            '  background: radial-gradient(ellipse at center, rgba(0,45,90,0.9) 0%, rgba(0,20,50,0.95) 100%) !important;',
-            '  border: 2px solid rgba(0,240,255,0.6) !important;',
-            '  border-radius: 10px !important;',
-            '  box-shadow: 0 0 20px rgba(0,240,255,0.4), inset 0 0 15px rgba(0,240,255,0.2) !important;',
-            '  transition: all 0.25s ease !important;',
-            '  cursor: pointer !important;',
-            '}',
-            '#player #play:hover {',
-            '  border-color: #ff2df7 !important;',
-            '  box-shadow: 0 0 30px rgba(255,45,247,0.7), inset 0 0 20px rgba(255,45,247,0.3) !important;',
-            '  text-shadow: 0 0 14px rgba(255,45,247,0.9) !important;',
-            '  transform: scale(1.02);',
-            '}',
-            '',
-            '/* --- Flèches de sélection de mode (Left / Right) --- */',
-            '.playbtn i {',
-            '  color: #00f0ff !important;',
-            '  text-shadow: 0 0 10px rgba(0,240,255,0.7) !important;',
-            '  background: transparent !important;',
-            '  border: none !important;',
-            '  box-shadow: none !important;',
-            '  transition: all 0.2s ease !important;',
-            '}',
-            '.playbtn i:hover {',
-            '  color: #ff2df7 !important;',
-            '  text-shadow: 0 0 20px rgba(255,45,247,0.9) !important;',
-            '  transform: scale(1.2);',
-            '}',
-            '',
-            '/* --- Menu déroulant des modes de jeu --- */',
-            '#game_modes .game_mode, #game_modes .mode {',
-            '  font-family: "Orbitron", "Play", sans-serif !important;',
-            '  background: rgba(8,16,36,0.92) !important;',
-            '  border: 1px solid rgba(0,240,255,0.3) !important;',
-            '  color: #cbe6ff !important;',
-            '  border-radius: 6px !important;',
-            '  transition: all 0.2s ease !important;',
-            '}',
-            '#game_modes .game_mode:hover {',
-            '  border-color: #ff2df7 !important;',
-            '  color: #ffffff !important;',
-            '  box-shadow: 0 0 15px rgba(255,45,247,0.5) !important;',
-            '}',
-            '#game_modes .selected, #game_modes .active {',
-            '  border-color: #00f0ff !important;',
-            '  background: rgba(0,50,100,0.9) !important;',
-            '  box-shadow: 0 0 20px rgba(0,240,255,0.6) !important;',
-            '  color: #ffffff !important;',
-            '}',
-            '',
-            '/* --- Champ de saisie du pseudo --- */',
-            '#player input, .inputwrapper input {',
-            '  font-family: "Play", sans-serif !important;',
-            '  border: 1px solid rgba(0,240,255,0.4) !important;',
-            '  background: rgba(6,16,38,0.75) !important;',
-            '  color: #c8edff !important;',
-            '  border-radius: 6px !important;',
-            '  padding: 8px 14px !important;',
-            '  box-shadow: 0 0 12px rgba(0,240,255,0.2) !important;',
-            '  outline: none !important;',
-            '  transition: all 0.2s ease;',
-            '}',
-            '#player input:focus, .inputwrapper input:focus {',
-            '  border-color: #ff2df7 !important;',
-            '  box-shadow: 0 0 18px rgba(255,45,247,0.55) !important;',
-            '}',
-            '',
-            '/* --- Boutons Respawn & Actions --- */',
-            '#respawn_actions button {',
-            '  font-family: "Orbitron", sans-serif !important;',
-            '  background: rgba(8,18,38,0.9) !important;',
-            '  border: 1px solid rgba(0,240,255,0.5) !important;',
-            '  color: #00f0ff !important;',
-            '  border-radius: 8px !important;',
-            '  padding: 10px 20px !important;',
-            '  box-shadow: 0 0 12px rgba(0,240,255,0.25) !important;',
-            '  transition: all 0.25s ease !important;',
-            '  cursor: pointer !important;',
-            '}',
-            '#respawn_actions button:hover {',
-            '  border-color: #ff2df7 !important;',
-            '  color: #ffffff !important;',
-            '  box-shadow: 0 0 22px rgba(255,45,247,0.6) !important;',
-            '  text-shadow: 0 0 10px rgba(255,45,247,0.8) !important;',
-            '  transform: translateY(-2px);',
-            '}',
-            '',
-            '/* --- Liens du menu latéral et followtools --- */',
-            '.followtools a {',
-            '  color: #6ce1ff !important;',
-            '  text-shadow: 0 0 8px rgba(0,240,255,0.4) !important;',
-            '  transition: all 0.2s ease !important;',
-            '}',
-            '.followtools a:hover {',
-            '  color: #ff88f5 !important;',
-            '  text-shadow: 0 0 16px rgba(255,45,247,0.8) !important;',
-            '  transform: scale(1.05);',
-            '}',
+            '/* ===== STARBLAST MOD WINDOWS & HUD INTEGRATION ===== */',
             '',
             '/* --- Icônes du menu social (Badges & Settings) --- */',
             '.social i {',
@@ -3302,26 +3172,15 @@
             '  filter: drop-shadow(0 0 12px rgba(255,45,247,0.8));',
             '}',
             '',
-            '/* --- Fenêtres modales vanilla --- */',
-            '.modal, .dialog, #donatebox, #gameinfos, .popup {',
-            '  background: rgba(10,15,30,0.95) !important;',
-            '  border: 1px solid rgba(0,240,255,0.4) !important;',
+            '/* ===== SYSTÈME DE FENÊTRES UNIFIÉ DU MOD (ANOS WINDOWS) ===== */',
+            '.anos-window {',
+            '  background: rgba(8, 14, 26, 0.94) !important;',
+            '  border: 1px solid rgba(0, 240, 255, 0.4) !important;',
             '  border-radius: 12px !important;',
-            '  box-shadow: 0 10px 40px rgba(0,0,0,0.85), 0 0 25px rgba(0,240,255,0.25) !important;',
+            '  box-shadow: 0 10px 40px rgba(0,0,0,0.85), 0 0 25px rgba(0,240,255,0.2) !important;',
             '  backdrop-filter: blur(12px) !important;',
             '  -webkit-backdrop-filter: blur(12px) !important;',
-            '  color: #cbe6ff !important;',
-            '}',
-            '',
-            '/* ===== SYSTÈME DE FENÊTRE UNIFIÉ DU MOD (ANOS WINDOWS) ===== */',
-            '.anos-window {',
-            '  background: rgba(10,15,30,0.96) !important;',
-            '  border: 1px solid rgba(0,240,255,0.4) !important;',
-            '  border-radius: 14px !important;',
-            '  box-shadow: 0 10px 40px rgba(0,0,0,0.85), 0 0 25px rgba(0,240,255,0.25) !important;',
-            '  backdrop-filter: blur(14px) !important;',
-            '  -webkit-backdrop-filter: blur(14px) !important;',
-            '  color: #cbe6ff !important;',
+            '  color: #d8f0ff !important;',
             '  font-family: "Play", "Segoe UI", sans-serif !important;',
             '  z-index: 999999 !important;',
             '  box-sizing: border-box !important;',
@@ -3332,7 +3191,7 @@
             '  justify-content: space-between !important;',
             '  align-items: center !important;',
             '  padding: 12px 16px !important;',
-            '  border-bottom: 1px solid rgba(0,240,255,0.2) !important;',
+            '  border-bottom: 1px solid rgba(0, 240, 255, 0.2) !important;',
             '  cursor: move !important;',
             '  user-select: none !important;',
             '  -webkit-user-select: none !important;',
@@ -3363,7 +3222,7 @@
             '}',
             '.anos-window-body {',
             '  padding: 14px 16px !important;',
-            '  max-height: 460px !important;',
+            '  max-height: 480px !important;',
             '  overflow-y: auto !important;',
             '  box-sizing: border-box !important;',
             '}',
@@ -3387,7 +3246,7 @@
             '  padding: 8px 10px !important;',
             '  background: rgba(0,240,255,0.04) !important;',
             '  border: 1px solid rgba(0,240,255,0.12) !important;',
-            '  border-radius: 8px !important;',
+            '  border-radius: 6px !important;',
             '  box-sizing: border-box !important;',
             '}',
             '.anos-row-info {',
@@ -3405,14 +3264,12 @@
             '  letter-spacing: 1px !important;',
             '  padding: 8px 14px !important;',
             '  background: rgba(0,240,255,0.15) !important;',
-            '  border: 1px solid rgba(0,240,255,0.5) !important;',
+            '  border: 1px solid rgba(0,240,255,0.4) !important;',
             '  border-radius: 6px !important;',
             '  color: #00f0ff !important;',
             '  cursor: pointer !important;',
-            '  box-shadow: 0 0 10px rgba(0,240,255,0.2) !important;',
+            '  box-shadow: 0 0 8px rgba(0,240,255,0.2) !important;',
             '  transition: all 0.2s ease !important;',
-            '  width: 100% !important;',
-            '  margin-bottom: 12px !important;',
             '  text-align: center !important;',
             '  box-sizing: border-box !important;',
             '}',
@@ -3420,8 +3277,22 @@
             '  background: rgba(255,45,247,0.2) !important;',
             '  border-color: #ff2df7 !important;',
             '  color: #ffffff !important;',
-            '  box-shadow: 0 0 15px rgba(255,45,247,0.6) !important;',
+            '  box-shadow: 0 0 14px rgba(255,45,247,0.5) !important;',
             '  transform: translateY(-1px) !important;',
+            '}',
+            '.anos-action-btn.apply-btn {',
+            '  background: linear-gradient(135deg, rgba(0,240,255,0.25) 0%, rgba(255,45,247,0.25) 100%) !important;',
+            '  border: 1px solid #00f0ff !important;',
+            '  color: #ffffff !important;',
+            '  padding: 10px 16px !important;',
+            '  font-size: 12px !important;',
+            '  margin-top: 10px !important;',
+            '  width: 100% !important;',
+            '}',
+            '.anos-action-btn.apply-btn:hover {',
+            '  background: linear-gradient(135deg, rgba(0,240,255,0.4) 0%, rgba(255,45,247,0.4) 100%) !important;',
+            '  box-shadow: 0 0 20px rgba(0,240,255,0.6), 0 0 30px rgba(255,45,247,0.4) !important;',
+            '  transform: scale(1.02) !important;',
             '}',
             '.anos-select {',
             '  width: 100% !important;',
@@ -3458,7 +3329,14 @@
             '.anos-switch input:checked + .anos-slider {',
             '  background: rgba(0,240,255,0.3) !important; border-color: #00f0ff !important; box-shadow: 0 0 8px rgba(0,240,255,0.5) !important;',
             '}',
-            '.anos-switch input:checked + .anos-slider:before { transform: translateX(16px) !important; background: #00f0ff !important; }'
+            '.anos-switch input:checked + .anos-slider:before { transform: translateX(16px) !important; background: #00f0ff !important; }',
+            '.badge-preset-btn {',
+            '  display: inline-flex !important; align-items: center !important; justify-content: center !important;',
+            '  padding: 4px 8px !important; margin: 2px !important; font-size: 11px !important;',
+            '  background: rgba(0,240,255,0.08) !important; border: 1px solid rgba(0,240,255,0.25) !important;',
+            '  border-radius: 4px !important; color: #cbe6ff !important; cursor: pointer !important; transition: all 0.2s !important;',
+            '}',
+            '.badge-preset-btn:hover { background: rgba(255,45,247,0.2) !important; border-color: #ff2df7 !important; color: #fff !important; }'
         ].join('\n');
         document.head.appendChild(styleEl);
     })();
@@ -3808,7 +3686,7 @@
     }, true);
 
     // =========================================================================
-    // 8. MODULE BADGE MANAGER (ICÔNE ALIEN DANS LA BARRE SOCIALE)
+    // 8. MODULE BADGE MANAGER FACILITÉ (FICHIER LOCAL + URL + PRESETS)
     // =========================================================================
     (function initBadgeManager() {
         var socialDiv = document.querySelector('.social');
@@ -3835,7 +3713,7 @@
             badgeManager.style.left = '50%';
             badgeManager.style.top = '50%';
             badgeManager.style.transform = 'translate(-50%, -50%)';
-            badgeManager.style.width = '420px';
+            badgeManager.style.width = '440px';
 
             badgeManager.innerHTML = '' +
                 '<div class="anos-window-header" id="badge-header">' +
@@ -3843,7 +3721,23 @@
                 '    <button class="anos-close-btn" id="close-badge">&times;</button>' +
                 '</div>' +
                 '<div class="anos-window-body">' +
-                '    <button class="anos-action-btn" id="btn-add-badge">+ Ajouter un badge</button>' +
+                '    <div style="display:flex; gap:8px; margin-bottom:10px;">' +
+                '        <button class="anos-action-btn" id="btn-upload-badge" style="flex:1;">📁 Choisir une image (PC)</button>' +
+                '        <button class="anos-action-btn" id="btn-add-badge-url" style="flex:1;">🌐 Ajouter via URL</button>' +
+                '    </div>' +
+                '    <input type="file" id="badge-file-input" accept="image/png, image/jpeg, image/webp, image/gif" style="display:none;">' +
+                '    <div style="margin-bottom:12px; padding:8px; background:rgba(0,240,255,0.03); border:1px solid rgba(0,240,255,0.1); border-radius:6px;">' +
+                '        <div class="anos-desc" style="margin-bottom:6px; color:#8ac;">✨ Badges pré-faits rapides (1 clic) :</div>' +
+                '        <div style="display:flex; flex-wrap:wrap;">' +
+                '            <button class="badge-preset-btn" data-name="Crown" data-icon="👑">👑 Crown</button>' +
+                '            <button class="badge-preset-btn" data-name="Fire" data-icon="🔥">🔥 Fire</button>' +
+                '            <button class="badge-preset-btn" data-name="Skull" data-icon="💀">💀 Skull</button>' +
+                '            <button class="badge-preset-btn" data-name="Diamond" data-icon="💎">💎 Diamond</button>' +
+                '            <button class="badge-preset-btn" data-name="Alien" data-icon="👽">👽 Alien</button>' +
+                '            <button class="badge-preset-btn" data-name="Star" data-icon="⭐">⭐ Star</button>' +
+                '        </div>' +
+                '    </div>' +
+                '    <div class="anos-section-title">Mes Badges Actifs</div>' +
                 '    <div id="badge-list"></div>' +
                 '</div>';
 
@@ -3856,16 +3750,58 @@
                 badgeManager = null;
             });
 
-            document.getElementById('btn-add-badge').addEventListener('click', function() {
+            // 1. Upload direct depuis le PC (converti en Base64 automatique)
+            var fileInput = document.getElementById('badge-file-input');
+            document.getElementById('btn-upload-badge').addEventListener('click', function() {
+                fileInput.click();
+            });
+
+            fileInput.addEventListener('change', function(e) {
+                var file = e.target.files && e.target.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function(evt) {
+                    var dataUrl = evt.target.result;
+                    var defaultName = file.name.replace(/\.[^/.]+$/, "");
+                    var badgeName = prompt('Nom du badge :', defaultName) || defaultName;
+                    saveBadge(badgeName, dataUrl);
+                    displayBadge(badgeName, dataUrl);
+                    fileInput.value = '';
+                };
+                reader.readAsDataURL(file);
+            });
+
+            // 2. Ajout via URL
+            document.getElementById('btn-add-badge-url').addEventListener('click', function() {
                 var name = prompt('Nom du badge :');
                 if (!name) return;
                 var url = prompt("URL de l'image (jpg/png/webp) :");
-                if (!url || !/^https?:\/\/.+\.(jpg|png|webp|gif)/i.test(url)) {
-                    alert('URL invalide (doit être un lien direct jpg, png ou webp).');
-                    return;
-                }
+                if (!url) return;
                 saveBadge(name, url);
                 displayBadge(name, url);
+            });
+
+            // 3. Badges prédéfinis SVG / Canvas
+            function createPresetDataUrl(emojiText) {
+                var canvas = document.createElement('canvas');
+                canvas.width = 64;
+                canvas.height = 64;
+                var ctx = canvas.getContext('2d');
+                ctx.font = '48px "Segoe UI Emoji", "Apple Color Emoji", sans-serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(emojiText, 32, 34);
+                return canvas.toDataURL('image/png');
+            }
+
+            document.querySelectorAll('.badge-preset-btn').forEach(function(btn) {
+                btn.addEventListener('click', function() {
+                    var bName = btn.getAttribute('data-name');
+                    var bIcon = btn.getAttribute('data-icon');
+                    var bData = createPresetDataUrl(bIcon);
+                    saveBadge(bName, bData);
+                    displayBadge(bName, bData);
+                });
             });
 
             function saveBadge(name, url) {
@@ -3880,10 +3816,10 @@
                 
                 var img = document.createElement('img');
                 img.src = url;
-                img.style.width = '38px';
-                img.style.height = '38px';
+                img.style.width = '36px';
+                img.style.height = '36px';
                 img.style.borderRadius = '6px';
-                img.style.objectFit = 'cover';
+                img.style.objectFit = 'contain';
                 img.style.marginRight = '12px';
                 img.style.border = '1px solid rgba(0,240,255,0.3)';
                 row.appendChild(img);
@@ -3898,6 +3834,7 @@
                 delBtn.textContent = '✕';
                 delBtn.className = 'anos-close-btn';
                 delBtn.style.color = '#ff5577';
+                delBtn.title = 'Supprimer ce badge';
                 delBtn.addEventListener('click', function() {
                     row.remove();
                     updateStorage();
@@ -3924,7 +3861,7 @@
     })();
 
     // =========================================================================
-    // 9. MODULE CLIENT SETTINGS MANAGER (ICÔNE MENU DANS LA BARRE SOCIALE)
+    // 9. MODULE CLIENT SETTINGS MANAGER (AVEC BOUTON APPLIQUER & RECHARGER)
     // =========================================================================
     (function initSettingsManager() {
         var socialDiv = document.querySelector('.social');
@@ -3964,6 +3901,7 @@
                 '        <span class="anos-label">💎 Gem Custom Color:</span>' +
                 '        <input type="color" id="gem-color-picker" value="' + (window.modSettings.gemColor || '#00f0ff') + '" style="cursor:pointer; border:none; background:none; width:36px; height:26px;">' +
                 '    </div>' +
+                '    <button class="anos-action-btn apply-btn" id="btn-apply-reload">💾 Appliquer les changements (Recharger)</button>' +
                 '</div>';
 
             document.body.appendChild(settingsTab);
@@ -4002,6 +3940,7 @@
                 var chk = document.createElement('input');
                 chk.type = 'checkbox';
                 chk.checked = !!window.modSettings[item.id];
+                chk.id = 'chk-' + item.id;
                 chk.addEventListener('change', function() {
                     window.modSettings[item.id] = chk.checked;
                     localStorage.setItem(item.key, JSON.stringify(chk.checked));
@@ -4025,6 +3964,17 @@
             document.getElementById('gem-color-picker').addEventListener('input', function(e) {
                 window.modSettings.gemColor = e.target.value;
                 localStorage.setItem('gemindeed', e.target.value);
+            });
+
+            // Bouton Appliquer les changements (Relance la page / Tampermonkey)
+            document.getElementById('btn-apply-reload').addEventListener('click', function() {
+                var gemVal = document.getElementById('gem-color-picker').value;
+                localStorage.setItem('gemindeed', gemVal);
+                items.forEach(function(item) {
+                    var chk = document.getElementById('chk-' + item.id);
+                    if (chk) localStorage.setItem(item.key, JSON.stringify(chk.checked));
+                });
+                window.location.reload();
             });
         });
     })();
