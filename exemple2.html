@@ -3105,7 +3105,7 @@
     // 1. CONFIGURATION GLOBALE & ÉTAT DU MOD (MOD SETTINGS)
     // =========================================================================
     window.modSettings = {
-        __version: 'unified-v3-20260814',
+        __version: 'unified-v4-20260814',
         fovEnabled: true,
         fastRespawnEnabled: false,
         gifMacroEnabled: false,
@@ -3152,7 +3152,7 @@
     })();
 
     // =========================================================================
-    // 2. THÈME GLOBAL NÉON ULTRA-MODERNE (LOBBY & ÉLÉMENTS DU JEU)
+    // 2. THÈME GLOBAL NÉON ULTRA-HARMONISÉ (LOBBY, MODALES & ÉLÉMENTS DU JEU)
     // =========================================================================
     (function injectGlobalTheme() {
         var styleEl = document.createElement('style');
@@ -3179,39 +3179,64 @@
             '',
             '/* --- Titres principaux et sous-titres --- */',
             '#content h1, #content h2, #content h3, #content h4,',
-            '#game_modes .section-title, #home h2, .event-time, .title {',
+            '#game_modes .section-title, #home h2, .event-time, .title, .modaltitle {',
             '  font-family: "Orbitron", "Play", sans-serif !important;',
             '  color: #00f0ff !important;',
             '  letter-spacing: 1.5px !important;',
             '  text-shadow: 0 0 12px rgba(0,240,255,0.6), 0 0 25px rgba(0,200,255,0.3) !important;',
             '}',
             '',
-            '/* --- Boutons JOUER et Boutons principaux --- */',
-            '.playbtn, .playbtn *,',
+            '/* --- BOUTONS UNIFIÉS (Tous les conteneurs et boutons du jeu et lobby) --- */',
+            'button, input[type=button], input[type=submit],',
+            '.playbtn, .playbtn *, #play,',
             '#game_modes .game_mode, #game_modes .mode,',
             '#_survival, #_team, #_invasion, #_deathmatch,',
-            '#content button, #content input[type=button], #content input[type=submit],',
-            '#home button, #home input[type=button],',
-            '#respawn_btn, #continue_btn, #refresh_btn {',
+            '#respawn_btn, #continue_btn, #refresh_btn,',
+            '.donate-btn, .frozenbg, .modal button, .dialog button,',
+            '.anos-cyber-btn, #badge-manager button, #settings-manager button {',
             '  font-family: "Orbitron", "Play", sans-serif !important;',
-            '  border: 1px solid rgba(0,240,255,0.5) !important;',
-            '  box-shadow: 0 0 12px rgba(0,240,255,0.25), inset 0 0 8px rgba(0,240,255,0.1) !important;',
+            '  border: 1px solid rgba(0,240,255,0.45) !important;',
+            '  box-shadow: 0 0 12px rgba(0,240,255,0.2), inset 0 0 8px rgba(0,240,255,0.08) !important;',
             '  color: #d8f6ff !important;',
-            '  background: rgba(8, 20, 45, 0.75) !important;',
+            '  background: rgba(8, 18, 38, 0.85) !important;',
             '  border-radius: 8px !important;',
             '  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;',
-            '  text-shadow: 0 0 8px rgba(0,240,255,0.5) !important;',
+            '  text-shadow: 0 0 8px rgba(0,240,255,0.4) !important;',
+            '  cursor: pointer !important;',
             '}',
             '',
-            '/* --- Hover boutons (Effet Magenta Néon) --- */',
-            '.playbtn:hover, #game_modes .game_mode:hover,',
-            '#content button:hover, #home button:hover,',
-            '#respawn_btn:hover, #continue_btn:hover {',
+            '/* --- Hover Boutons Unifié (Effet Magenta Néon) --- */',
+            'button:hover, input[type=button]:hover, input[type=submit]:hover,',
+            '.playbtn:hover, #play:hover, #game_modes .game_mode:hover,',
+            '#respawn_btn:hover, #continue_btn:hover, #refresh_btn:hover,',
+            '.donate-btn:hover, .frozenbg:hover, .modal button:hover, .dialog button:hover,',
+            '.anos-cyber-btn:hover, #badge-manager button:hover, #settings-manager button:hover {',
             '  border-color: #ff2df7 !important;',
-            '  box-shadow: 0 0 24px rgba(255,45,247,0.6), inset 0 0 12px rgba(255,45,247,0.25) !important;',
+            '  box-shadow: 0 0 22px rgba(255,45,247,0.55), inset 0 0 10px rgba(255,45,247,0.2) !important;',
             '  color: #ffffff !important;',
             '  text-shadow: 0 0 12px rgba(255,45,247,0.8) !important;',
             '  transform: translateY(-2px);',
+            '}',
+            '',
+            '/* --- CONTENEURS ET PANELS UNIFIÉS (Couleurs & Transparences identiques) --- */',
+            '.modal, .dialog, #donatebox, #donate, #gameinfos, .popup,',
+            '#anos-toolbox, #badge-manager, #settings-manager,',
+            '#respawn, #connection_lost, #adblocked_message, #game_over,',
+            '.changelog-new, .alphacentauri, .community {',
+            '  background: rgba(8, 14, 28, 0.94) !important;',
+            '  border: 1px solid rgba(0, 240, 255, 0.35) !important;',
+            '  border-radius: 12px !important;',
+            '  box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(0,240,255,0.2) !important;',
+            '  backdrop-filter: blur(12px) !important;',
+            '  -webkit-backdrop-filter: blur(12px) !important;',
+            '  color: #cbe6ff !important;',
+            '}',
+            '',
+            '/* --- LIGNES DE CONTENU DANS LES MODALES ET PANELS --- */',
+            '.setting-row, .modal-row, .badge-row, .list-row {',
+            '  background: rgba(0, 240, 255, 0.04) !important;',
+            '  border: 1px solid rgba(0, 240, 255, 0.12) !important;',
+            '  border-radius: 6px !important;',
             '}',
             '',
             '/* --- Mode de jeu sélectionné (Active) --- */',
@@ -3222,19 +3247,19 @@
             '  background: rgba(0, 35, 75, 0.85) !important;',
             '}',
             '',
-            '/* --- Champ de saisie du pseudo (Player Name) --- */',
-            '#player input, .inputwrapper input, #content input[type=text], #home input[type=text],',
-            '#playername, input[name=playername] {',
+            '/* --- Champ de saisie du pseudo & Inputs texte --- */',
+            'input[type=text], input[type=password], input[type=number],',
+            '#player input, .inputwrapper input, #playername, input[name=playername], select {',
             '  font-family: "Play", sans-serif !important;',
-            '  border: 1px solid rgba(0,240,255,0.4) !important;',
-            '  background: rgba(6, 16, 38, 0.7) !important;',
+            '  border: 1px solid rgba(0,240,255,0.35) !important;',
+            '  background: rgba(6, 16, 36, 0.85) !important;',
             '  color: #c8edff !important;',
             '  border-radius: 6px !important;',
             '  padding: 8px 12px !important;',
-            '  box-shadow: 0 0 10px rgba(0,240,255,0.2) !important;',
+            '  box-shadow: 0 0 10px rgba(0,240,255,0.15) !important;',
             '  transition: all 0.2s ease;',
             '}',
-            '#player input:focus, .inputwrapper input:focus {',
+            'input[type=text]:focus, .inputwrapper input:focus, select:focus {',
             '  border-color: #ff2df7 !important;',
             '  box-shadow: 0 0 16px rgba(255,45,247,0.5) !important;',
             '  outline: none !important;',
@@ -3249,15 +3274,6 @@
             '.followtools a:hover, #content a:hover, #home a:hover, .infos a:hover {',
             '  color: #ff88f5 !important;',
             '  text-shadow: 0 0 14px rgba(255,45,247,0.7);',
-            '}',
-            '',
-            '/* --- Fenêtres modales / Panels du lobby --- */',
-            '.modal, .dialog, #donatebox, #donate, #gameinfos, .popup {',
-            '  background: rgba(10, 15, 30, 0.94) !important;',
-            '  border: 1px solid rgba(0,240,255,0.4) !important;',
-            '  border-radius: 12px !important;',
-            '  box-shadow: 0 0 30px rgba(0,0,0,0.8), 0 0 20px rgba(0,240,255,0.25) !important;',
-            '  backdrop-filter: blur(10px) !important;',
             '}',
             '',
             '/* --- Icônes du menu social (Badges & Settings) --- */',
@@ -3351,55 +3367,131 @@
     updateSmoothZoom();
 
     // =========================================================================
-    // 5. GESTION DES ÉMOTES CUSTOMS (E=Clown, J=Blank, I=Fire, V=Skull)
+    // 5. GESTION DES ÉMOTES CUSTOMS (E=Clown, J=Blank, I=Fire, V=Skull) & DESSIN POLICE
     // =========================================================================
+    function hookChatButtonRenderer() {
+        if (window.ChatButton && !window.ChatButton.__customRenderHooked) {
+            var origI00O0 = window.ChatButton.prototype.I00O0;
+            window.ChatButton.prototype.I00O0 = function(t) {
+                var i, s;
+                this.background = "hsla(" + this.hue + ",70%,30%,.15)";
+                this.medium = "hsla(" + this.hue + ",70%,40%,.25)";
+                this.color = "hsla(" + this.hue + ",50%,80%,1)";
+                t.save();
+                t.translate(this.px, this.OOlOl);
+                t.clearRect(0, 0, this.OIl00, this.I01O0);
+                t.fillStyle = this.background;
+                window.ChatButton.bubble(t, .02 * this.I01O0, .02 * this.I01O0, this.OIl00 - .04 * this.I01O0, .96 * this.I01O0, .1 * this.I01O0);
+                t.fill();
+                if (this.selected) {
+                    t.strokeStyle = this.color;
+                    t.lineWidth = .04 * this.I01O0;
+                    t.stroke();
+                }
+                i = Math.round(this.I01O0 / 8);
+                t.font = i + "pt Play";
+                t.textBaseline = "middle";
+                t.textAlign = "center";
+                t.fillStyle = this.color;
+                t.fillText(this.name, this.OIl00 / 2, .12 * this.I01O0);
+                
+                i = Math.round(this.I01O0 / 3);
+                // Si l'icône est un caractère Unicode standard ou multi-byte (ex: Emoji, GG, Blank), utiliser 'Play' ou 'Segoe UI Emoji'
+                if (this.icon === "GG" || this.key === "E" || this.key === "J" || this.key === "I" || this.key === "V" || this.icon.length > 1 || this.icon.charCodeAt(0) > 255) {
+                    t.font = i + "pt 'Segoe UI Emoji', 'Apple Color Emoji', 'Play', sans-serif";
+                } else {
+                    t.font = i + "pt SBGlyphs";
+                }
+                t.textBaseline = "middle";
+                t.textAlign = "center";
+                t.fillStyle = this.color;
+                t.fillText(this.icon, this.OIl00 / 2, .45 * this.I01O0);
+
+                if (!this.Ol111.is_mobile && !this.Ol111.is_mobile_app && !this.using_gamepad) {
+                    i = Math.round(this.I01O0 / 8);
+                    t.font = i + "pt Play";
+                    t.fillText(this.key, .8 * this.OIl00, .7 * this.I01O0);
+                    t.strokeStyle = this.color;
+                    s = Math.max(2, this.key.length) * this.OIl00 / 8;
+                    t.strokeRect(.8 * this.OIl00 - s / 2, .7 * this.I01O0 - .1 * this.I01O0, s, .2 * this.I01O0);
+                }
+                t.restore();
+            };
+            window.ChatButton.__customRenderHooked = true;
+        }
+    }
+
     function ensureCustomEmotes() {
         var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
         var chat = game && game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.chatpanel;
         if (!chat) return;
 
+        hookChatButtonRenderer();
+
         if (!chat.Ol111) chat.Ol111 = {};
         if (!chat.Ol111.vocabulary) chat.Ol111.vocabulary = {};
 
         var vocab = chat.Ol111.vocabulary;
-        if (!vocab['J']) vocab['J'] = { icon: '\u2591', text: 'Blank' };
-        if (!vocab['I']) vocab['I'] = { icon: '\ud83d\udd25', text: 'Fire' };
-        if (!vocab['V']) vocab['V'] = { icon: '\ud83d\udc80', text: 'Skull' };
-        vocab['E'] = { icon: '\ud83e\udd21', text: 'Clown' };
+        vocab['E'] = { icon: '🤡', text: 'Clown' };
+        if (!vocab['J']) vocab['J'] = { icon: '░', text: 'Blank' };
+        if (!vocab['I']) vocab['I'] = { icon: '🔥', text: 'Fire' };
+        if (!vocab['V']) vocab['V'] = { icon: '💀', text: 'Skull' };
+
+        // 1. Remplacer et repositionner correctement les boutons dans le chatpanel
+        var buttons = chat.buttons || [];
+        for (var b = 0; b < buttons.length; b++) {
+            var btn = buttons[b];
+            if (btn.key === 'E') {
+                btn.name = 'Clown';
+                btn.icon = '🤡';
+            }
+        }
 
         if (chat.__customEmotesInjected) return;
-        if (!chat.buttons || chat.buttons.length === 0) return;
+        if (buttons.length === 0) return;
 
         try {
             var customEmotes = [
-                { key: 'J', icon: '\u2591', text: 'Blank' },
-                { key: 'E', icon: '\ud83e\udd21', text: 'Clown' },
-                { key: 'I', icon: '\ud83d\udd25', text: 'Fire' },
-                { key: 'V', icon: '\ud83d\udc80', text: 'Skull' }
+                { key: 'J', icon: '░', text: 'Blank' },
+                { key: 'I', icon: '🔥', text: 'Fire' },
+                { key: 'V', icon: '💀', text: 'Skull' }
             ];
-            var btnClass = chat.buttons[0].constructor;
-            var added = 0;
+            var btnClass = buttons[0].constructor;
             for (var e = 0; e < customEmotes.length; e++) {
                 var ce = customEmotes[e];
                 var exists = false;
-                for (var b = 0; b < chat.buttons.length; b++) {
-                    if (chat.buttons[b].key === ce.key) { exists = true; break; }
+                for (var j = 0; j < buttons.length; j++) {
+                    if (buttons[j].key === ce.key) { exists = true; break; }
                 }
                 if (exists) continue;
                 var newBtn = new btnClass(chat.Ol111 || game, ce.text, ce.icon, ce.key,
-                    function(key) { return function() { chat.typed(key); }; }(ce.key));
-                var idx = (chat.buttons.length + added);
-                var col = idx % 4;
-                var row = Math.floor(idx / 4);
-                var rowSpacing = row >= 4 ? 0.19 : 0.25;
-                chat.add(newBtn, [(col + 1) / 5 + 0.01, rowSpacing * row + 0.01, 1/5 - 0.02, 0.23]);
-                chat.buttons.push(newBtn);
-                added++;
+                    function(k) { return function() { chat.typed(k); }; }(ce.key));
+                buttons.push(newBtn);
+            }
+
+            // Repositionnement propre de TOUTE la grille (4 colonnes, taille adaptative)
+            var total = buttons.length;
+            var numRows = Math.ceil(total / 4);
+            var rowHeight = Math.min(0.23, (0.95 / numRows) - 0.02);
+            var colWidth = 1 / 5 - 0.02;
+
+            for (var i = 0; i < total; i++) {
+                var btnItem = buttons[i];
+                var col = i % 4;
+                var row = Math.floor(i / 4);
+                // Si l'élément n'a pas encore été ajouté au chat panel
+                if (chat.children && chat.children.indexOf(btnItem) === -1) {
+                    chat.add(btnItem, [(col + 1) / 5 + 0.01, (rowHeight + 0.02) * row + 0.01, colWidth, rowHeight]);
+                } else {
+                    // Mise à jour de la position
+                    btnItem.O00OI = [(col + 1) / 5 + 0.01, (rowHeight + 0.02) * row + 0.01, colWidth, rowHeight];
+                    btnItem.O10lO = [(col + 1) / 5 + 0.01, (rowHeight + 0.02) * row + 0.01, colWidth, rowHeight];
+                }
             }
             chat.__customEmotesInjected = true;
         } catch(err) {}
     }
-    setInterval(ensureCustomEmotes, 1000);
+    setInterval(ensureCustomEmotes, 800);
 
     window.sendEmoteDirect = function(key) {
         ensureCustomEmotes();
@@ -3544,8 +3636,8 @@
             '}',
             '.setting-row {',
             '    display: flex; justify-content: space-between; align-items: center;',
-            '    margin-bottom: 8px; padding: 6px 8px; background: rgba(0, 240, 255, 0.03);',
-            '    border: 1px solid rgba(0, 240, 255, 0.08); border-radius: 6px;',
+            '    margin-bottom: 8px; padding: 8px 10px; background: rgba(0, 240, 255, 0.04);',
+            '    border: 1px solid rgba(0, 240, 255, 0.12); border-radius: 6px;',
             '}',
             '.setting-info { display: flex; flex-direction: column; padding-right: 10px; flex: 1; }',
             '.setting-label { font-size: 12px; font-weight: 600; color: #d0ecff; }',
@@ -3749,7 +3841,7 @@
     }, true);
 
     // =========================================================================
-    // 8. MODULE BADGE MANAGER (INTÉGRATION COMPLÈTE)
+    // 8. MODULE BADGE MANAGER (INTÉGRATION COMPLÈTE & STYLES HARMONISÉS)
     // =========================================================================
     (function initBadgeManager() {
         var socialDiv = document.querySelector('.social');
@@ -3772,16 +3864,10 @@
             badgeManager.id = 'badge-manager';
             Object.assign(badgeManager.style, {
                 width: '420px', maxHeight: '520px',
-                background: 'rgba(8, 14, 28, 0.95)',
-                borderRadius: '14px', padding: '20px',
-                boxShadow: '0 0 30px rgba(0,0,0,0.8), 0 0 20px rgba(0,240,255,0.3)',
-                border: '1px solid rgba(0,240,255,0.4)',
                 position: 'fixed', left: '50%', top: '50%',
                 transform: 'translate(-50%, -50%)',
-                backdropFilter: 'blur(12px)',
                 zIndex: '999999', display: 'block',
-                overflow: 'auto', color: '#c8e8ff',
-                fontFamily: '"Play", sans-serif'
+                overflow: 'auto', padding: '22px'
             });
 
             var offsetX, offsetY, isDragging = false;
@@ -3804,7 +3890,7 @@
             Object.assign(closeBtn.style, {
                 position: 'absolute', top: '10px', right: '12px',
                 background: 'transparent', border: 'none', color: '#ff2df7',
-                fontSize: '18px', cursor: 'pointer'
+                fontSize: '18px', cursor: 'pointer', boxShadow: 'none'
             });
             closeBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -3825,11 +3911,7 @@
             addBtn.textContent = '+ Ajouter un badge';
             Object.assign(addBtn.style, {
                 padding: '8px 16px', cursor: 'pointer',
-                background: 'rgba(0,240,255,0.2)',
-                border: '1px solid rgba(0,240,255,0.5)',
-                color: '#c0f0ff', borderRadius: '6px',
-                marginBottom: '12px', fontFamily: '"Orbitron", sans-serif',
-                fontWeight: 'bold'
+                marginBottom: '14px', width: '100%'
             });
             addBtn.addEventListener('click', function() {
                 var name = prompt('Nom du badge :');
@@ -3856,28 +3938,29 @@
 
             function displayBadge(name, url) {
                 var row = document.createElement('div');
+                row.className = 'setting-row badge-row';
                 Object.assign(row.style, {
                     display: 'flex', alignItems: 'center', marginBottom: '8px',
-                    padding: '6px 10px', background: 'rgba(0,240,255,0.06)',
-                    border: '1px solid rgba(0,240,255,0.15)', borderRadius: '8px'
+                    padding: '8px 12px'
                 });
                 var img = document.createElement('img');
                 img.src = url;
                 Object.assign(img.style, {
-                    width: '44px', height: '44px', borderRadius: '6px',
-                    objectFit: 'cover', marginRight: '12px'
+                    width: '42px', height: '42px', borderRadius: '6px',
+                    objectFit: 'cover', marginRight: '12px', border: '1px solid rgba(0,240,255,0.3)'
                 });
                 row.appendChild(img);
                 var lbl = document.createElement('span');
                 lbl.textContent = name;
                 lbl.style.flex = '1';
                 lbl.style.fontWeight = 'bold';
+                lbl.style.fontSize = '12px';
                 row.appendChild(lbl);
                 var delBtn = document.createElement('button');
                 delBtn.textContent = '✕';
                 Object.assign(delBtn.style, {
                     background: 'transparent', border: 'none',
-                    color: '#ff6b6b', cursor: 'pointer', fontSize: '16px'
+                    color: '#ff6b6b', cursor: 'pointer', fontSize: '16px', boxShadow: 'none'
                 });
                 delBtn.addEventListener('click', function() {
                     row.remove();
@@ -3889,7 +3972,7 @@
 
             function updateStorage() {
                 var badges = [];
-                document.querySelectorAll('#badge-list div').forEach(function(row) {
+                document.querySelectorAll('#badge-list .badge-row').forEach(function(row) {
                     var n = row.querySelector('span');
                     var i = row.querySelector('img');
                     if (n && i) badges.push({ name: n.textContent, url: i.src });
@@ -3905,7 +3988,7 @@
     })();
 
     // =========================================================================
-    // 9. MODULE CLIENT SETTINGS MANAGER (SETTINGATABSES INTÉGRÉ)
+    // 9. MODULE CLIENT SETTINGS MANAGER (SETTINGATABSES INTÉGRÉ & HARMONISÉ)
     // =========================================================================
     (function initSettingsManager() {
         var socialDiv = document.querySelector('.social');
@@ -3928,16 +4011,10 @@
             settingsTab.id = 'settings-manager';
             Object.assign(settingsTab.style, {
                 width: '460px', maxHeight: '560px',
-                background: 'rgba(8, 14, 28, 0.96)',
-                borderRadius: '14px', padding: '24px',
-                boxShadow: '0 0 35px rgba(0,0,0,0.8), 0 0 25px rgba(0,240,255,0.3)',
-                border: '1px solid rgba(0,240,255,0.4)',
                 position: 'fixed', left: '50%', top: '50%',
                 transform: 'translate(-50%, -50%)',
-                backdropFilter: 'blur(12px)',
                 zIndex: '999999', display: 'block',
-                overflow: 'auto', color: '#c8e8ff',
-                fontFamily: '"Play", sans-serif'
+                overflow: 'auto', padding: '22px'
             });
 
             var offsetX, offsetY, isDragging = false;
@@ -3961,7 +4038,7 @@
             Object.assign(closeBtn.style, {
                 position: 'absolute', top: '10px', right: '12px',
                 background: 'transparent', border: 'none', color: '#ff2df7',
-                fontSize: '18px', cursor: 'pointer'
+                fontSize: '18px', cursor: 'pointer', boxShadow: 'none'
             });
             closeBtn.addEventListener('click', function(e) {
                 e.stopPropagation();
@@ -3992,10 +4069,10 @@
             var container = document.createElement('div');
             items.forEach(function(item) {
                 var row = document.createElement('div');
+                row.className = 'setting-row';
                 Object.assign(row.style, {
                     display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                    padding: '6px 8px', marginBottom: '6px', background: 'rgba(0,240,255,0.04)',
-                    border: '1px solid rgba(0,240,255,0.1)', borderRadius: '6px'
+                    padding: '8px 10px', marginBottom: '8px'
                 });
                 var lbl = document.createElement('label');
                 lbl.textContent = item.label;
@@ -4023,10 +4100,10 @@
 
             // Gem Color Picker
             var gemRow = document.createElement('div');
+            gemRow.className = 'setting-row';
             Object.assign(gemRow.style, {
                 display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-                padding: '6px 8px', marginTop: '8px', background: 'rgba(0,240,255,0.04)',
-                border: '1px solid rgba(0,240,255,0.1)', borderRadius: '6px'
+                padding: '8px 10px', marginTop: '8px'
             });
             var gemLbl = document.createElement('span');
             gemLbl.textContent = '💎 Gem Custom Color:';
@@ -4034,6 +4111,7 @@
             var gemInput = document.createElement('input');
             gemInput.type = 'color';
             gemInput.value = window.modSettings.gemColor || '#00f0ff';
+            gemInput.style.cursor = 'pointer';
             gemInput.addEventListener('input', function() {
                 window.modSettings.gemColor = gemInput.value;
                 localStorage.setItem('gemindeed', gemInput.value);
