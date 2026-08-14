@@ -3095,129 +3095,199 @@
 
 <script>
 (function() {
+    'use strict';
+
     if (typeof Ol111 !== 'undefined' && !window.gameInstance) {
         window.gameInstance = Ol111;
     }
 
+    // =========================================================================
+    // 1. CONFIGURATION GLOBALE & ÉTAT DU MOD (MOD SETTINGS)
+    // =========================================================================
     window.modSettings = {
-        __version: 'clean-v2-20260807',
+        __version: 'unified-v3-20260814',
         fovEnabled: true,
         fastRespawnEnabled: false,
         gifMacroEnabled: false,
         neonHudEnabled: true,
-        homeThemeEnabled: true
+        homeThemeEnabled: true,
+        // Settings Avancés (Settings Manager / settingatabses)
+        lowercaseName: false,
+        uncoverLeader: false,
+        blankBadges: false,
+        emoteCapacity: 5,
+        gemColor: '#00f0ff',
+        blurEffect: false,
+        removeTimer: false,
+        customStation: false,
+        customWeapons: false,
+        voiceChat: false
     };
 
-    // ===== THÈME PAGE D'ACCUEIL (néon violet/cyan, réversible) =====
-    (function applyHomeTheme() {
-        if (!window.modSettings.homeThemeEnabled) return;
-        var s = document.createElement('style');
-        s.id = 'anos-home-theme';
-        s.textContent = [
-            '/* ===== THÈME NÉON VIBRANT — sélecteurs réels de la page ===== */',
+    // Chargement initial des réglages depuis localStorage
+    (function loadStoredSettings() {
+        var keyMap = {
+            'lownamecase': 'lowercaseName',
+            'leaderunde': 'uncoverLeader',
+            'goodles': 'blankBadges',
+            'emopacity': 'emoteCapacity',
+            'gemindeed': 'gemColor',
+            'blurdes': 'blurEffect',
+            'timdel': 'removeTimer',
+            'stationisten': 'customStation',
+            'weaponisten': 'customWeapons',
+            'oiceat': 'voiceChat'
+        };
+        for (var k in keyMap) {
+            var val = localStorage.getItem(k);
+            if (val !== null) {
+                if (keyMap[k] === 'emoteCapacity') val = parseInt(val, 10) || 5;
+                else if (keyMap[k] === 'gemColor') val = val;
+                else {
+                    try { val = JSON.parse(val); } catch(e) {}
+                }
+                window.modSettings[keyMap[k]] = val;
+            }
+        }
+    })();
+
+    // =========================================================================
+    // 2. THÈME GLOBAL NÉON ULTRA-MODERNE (LOBBY & ÉLÉMENTS DU JEU)
+    // =========================================================================
+    (function injectGlobalTheme() {
+        var styleEl = document.createElement('style');
+        styleEl.id = 'anos-global-theme';
+        styleEl.textContent = [
+            '/* ===== STARBLAST UNIFIED NEON CYBER THEME ===== */',
+            '@import url("https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&family=Play:wght@400;700&display=swap");',
             '',
-            '/* --- Fond de page : dégradé profond violet/bleu --- */',
-            'body, #content, #home {',
-            '  background: radial-gradient(ellipse at 20% 0%, #0b1030 0%, #070a1c 55%, #020510 100%) !important;',
+            '/* --- Fond de page Cyberpunk / Deep Space --- */',
+            'body, #content, #home, .main-container {',
+            '  background: radial-gradient(ellipse at 25% 15%, #0e1238 0%, #06091e 50%, #02040c 100%) !important;',
+            '  font-family: "Play", "Segoe UI", sans-serif !important;',
             '}',
             '',
-            '/* --- Logo : glow néon --- */',
-            '#logo img {',
-            '  filter: drop-shadow(0 0 18px rgba(0,240,255,0.6)) drop-shadow(0 0 30px rgba(255,45,247,0.4)) !important;',
+            '/* --- Logo Starblast avec glow néon cyan/magenta --- */',
+            '#logo img, .gamelogo {',
+            '  filter: drop-shadow(0 0 20px rgba(0,240,255,0.75)) drop-shadow(0 0 35px rgba(255,45,247,0.5)) !important;',
+            '  transition: transform 0.3s ease, filter 0.3s ease;',
+            '}',
+            '#logo img:hover {',
+            '  transform: scale(1.02);',
+            '  filter: drop-shadow(0 0 25px rgba(0,240,255,0.9)) drop-shadow(0 0 45px rgba(255,45,247,0.7)) !important;',
             '}',
             '',
-            '/* --- Titres et labels : cyan lumineux --- */',
+            '/* --- Titres principaux et sous-titres --- */',
             '#content h1, #content h2, #content h3, #content h4,',
-            '#game_modes .section-title, #home h2, .event-time {',
-            '  color: #00e5ff !important;',
-            '  text-shadow: 0 0 12px rgba(0,240,255,0.5), 0 0 24px rgba(0,200,255,0.25) !important;',
+            '#game_modes .section-title, #home h2, .event-time, .title {',
+            '  font-family: "Orbitron", "Play", sans-serif !important;',
+            '  color: #00f0ff !important;',
+            '  letter-spacing: 1.5px !important;',
+            '  text-shadow: 0 0 12px rgba(0,240,255,0.6), 0 0 25px rgba(0,200,255,0.3) !important;',
             '}',
             '',
-            '/* --- Boutons JOUER et modes : bordure néon --- */',
+            '/* --- Boutons JOUER et Boutons principaux --- */',
             '.playbtn, .playbtn *,',
             '#game_modes .game_mode, #game_modes .mode,',
-            '#_survival, #_team,',
+            '#_survival, #_team, #_invasion, #_deathmatch,',
             '#content button, #content input[type=button], #content input[type=submit],',
             '#home button, #home input[type=button],',
             '#respawn_btn, #continue_btn, #refresh_btn {',
+            '  font-family: "Orbitron", "Play", sans-serif !important;',
             '  border: 1px solid rgba(0,240,255,0.5) !important;',
-            '  box-shadow: 0 0 10px rgba(0,240,255,0.3), inset 0 0 6px rgba(0,240,255,0.1) !important;',
-            '  color: #d0f4ff !important;',
-            '  background: rgba(5,15,35,0.7) !important;',
-            '  transition: all .25s ease;',
-            '  text-shadow: 0 0 6px rgba(0,240,255,0.4);',
+            '  box-shadow: 0 0 12px rgba(0,240,255,0.25), inset 0 0 8px rgba(0,240,255,0.1) !important;',
+            '  color: #d8f6ff !important;',
+            '  background: rgba(8, 20, 45, 0.75) !important;',
+            '  border-radius: 8px !important;',
+            '  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1) !important;',
+            '  text-shadow: 0 0 8px rgba(0,240,255,0.5) !important;',
             '}',
             '',
-            '/* --- Hover boutons : bordure magenta --- */',
+            '/* --- Hover boutons (Effet Magenta Néon) --- */',
             '.playbtn:hover, #game_modes .game_mode:hover,',
             '#content button:hover, #home button:hover,',
             '#respawn_btn:hover, #continue_btn:hover {',
             '  border-color: #ff2df7 !important;',
-            '  box-shadow: 0 0 20px rgba(255,45,247,0.55), inset 0 0 10px rgba(255,45,247,0.2) !important;',
-            '  color: #fff !important;',
-            '  text-shadow: 0 0 10px rgba(255,45,247,0.6);',
-            '  transform: translateY(-1px);',
+            '  box-shadow: 0 0 24px rgba(255,45,247,0.6), inset 0 0 12px rgba(255,45,247,0.25) !important;',
+            '  color: #ffffff !important;',
+            '  text-shadow: 0 0 12px rgba(255,45,247,0.8) !important;',
+            '  transform: translateY(-2px);',
             '}',
             '',
-            '/* --- Mode sélectionné (actif) : glow cyan fort --- */',
+            '/* --- Mode de jeu sélectionné (Active) --- */',
             '#game_modes .selected, #game_modes .active,',
             '#home .selected, #home .active {',
             '  border-color: #00f0ff !important;',
-            '  box-shadow: 0 0 24px rgba(0,240,255,0.6), 0 0 40px rgba(0,200,255,0.3) !important;',
-            '  background: rgba(0,30,60,0.8) !important;',
+            '  box-shadow: 0 0 28px rgba(0,240,255,0.7), 0 0 45px rgba(0,200,255,0.35) !important;',
+            '  background: rgba(0, 35, 75, 0.85) !important;',
             '}',
             '',
-            '/* --- Champ nom (input) --- */',
+            '/* --- Champ de saisie du pseudo (Player Name) --- */',
             '#player input, .inputwrapper input, #content input[type=text], #home input[type=text],',
             '#playername, input[name=playername] {',
+            '  font-family: "Play", sans-serif !important;',
             '  border: 1px solid rgba(0,240,255,0.4) !important;',
-            '  background: rgba(5,15,35,0.6) !important;',
-            '  color: #c0e8ff !important;',
-            '  box-shadow: 0 0 8px rgba(0,240,255,0.2) !important;',
+            '  background: rgba(6, 16, 38, 0.7) !important;',
+            '  color: #c8edff !important;',
+            '  border-radius: 6px !important;',
+            '  padding: 8px 12px !important;',
+            '  box-shadow: 0 0 10px rgba(0,240,255,0.2) !important;',
+            '  transition: all 0.2s ease;',
             '}',
             '#player input:focus, .inputwrapper input:focus {',
             '  border-color: #ff2df7 !important;',
-            '  box-shadow: 0 0 14px rgba(255,45,247,0.45) !important;',
+            '  box-shadow: 0 0 16px rgba(255,45,247,0.5) !important;',
+            '  outline: none !important;',
             '}',
             '',
-            '/* --- Liens sociaux et footer --- */',
+            '/* --- Liens et Réseaux sociaux --- */',
             '.followtools a, #content a, #home a, .infos a {',
-            '  color: #7cd8ff !important;',
-            '  text-shadow: 0 0 6px rgba(0,240,255,0.4);',
-            '  transition: all .2s ease;',
+            '  color: #6ce1ff !important;',
+            '  text-shadow: 0 0 8px rgba(0,240,255,0.4);',
+            '  transition: all 0.2s ease;',
             '}',
             '.followtools a:hover, #content a:hover, #home a:hover, .infos a:hover {',
-            '  color: #ffb0f0 !important;',
-            '  text-shadow: 0 0 12px rgba(255,45,247,0.6);',
+            '  color: #ff88f5 !important;',
+            '  text-shadow: 0 0 14px rgba(255,45,247,0.7);',
             '}',
             '',
-            '/* --- Donation box --- */',
-            '#donatebox, #donate {',
-            '  border: 1px solid rgba(0,240,255,0.3) !important;',
-            '  box-shadow: 0 0 16px rgba(0,240,255,0.2) !important;',
-            '  background: rgba(5,15,35,0.5) !important;',
-            '}',
-            '.donate-btn, #donatebtn {',
-            '  border-color: rgba(255,45,247,0.5) !important;',
-            '  box-shadow: 0 0 10px rgba(255,45,247,0.35) !important;',
-            '  color: #ffe0f8 !important;',
+            '/* --- Fenêtres modales / Panels du lobby --- */',
+            '.modal, .dialog, #donatebox, #donate, #gameinfos, .popup {',
+            '  background: rgba(10, 15, 30, 0.94) !important;',
+            '  border: 1px solid rgba(0,240,255,0.4) !important;',
+            '  border-radius: 12px !important;',
+            '  box-shadow: 0 0 30px rgba(0,0,0,0.8), 0 0 20px rgba(0,240,255,0.25) !important;',
+            '  backdrop-filter: blur(10px) !important;',
             '}',
             '',
-            '/* --- Barres/séparateurs --- */',
-            '#content hr, #home hr {',
-            '  border-color: rgba(0,240,255,0.3) !important;',
-            '  box-shadow: 0 0 6px rgba(0,240,255,0.25);',
+            '/* --- Icônes du menu social (Badges & Settings) --- */',
+            '.social i {',
+            '  font-size: 24px !important;',
+            '  color: #00f0ff !important;',
+            '  cursor: pointer !important;',
+            '  margin-left: 12px !important;',
+            '  transition: all 0.25s ease !important;',
+            '  filter: drop-shadow(0 0 6px rgba(0,240,255,0.5));',
+            '}',
+            '.social i:hover {',
+            '  color: #ff2df7 !important;',
+            '  transform: scale(1.15);',
+            '  filter: drop-shadow(0 0 12px rgba(255,45,247,0.8));',
             '}'
         ].join('\n');
-        document.head.appendChild(s);
+        document.head.appendChild(styleEl);
     })();
 
+    // =========================================================================
+    // 3. LOGIQUE JEU EN DIRECT (FAST RESPAWN & HUD NÉON DYNAMIQUE)
+    // =========================================================================
     var originalRespawnDelay = null;
 
     setInterval(function() {
         var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
         if (!game) return;
-        
+
+        // Gestion Fast Respawn
         if (game.mode) {
             if (originalRespawnDelay === null && typeof game.mode.respawn_delay === 'number') {
                 originalRespawnDelay = game.mode.respawn_delay;
@@ -3235,38 +3305,37 @@
             if (respawnBtn) respawnBtn.click();
         }
 
-        // ===== THÈME HUD NÉON (cyan) EN JEU =====
-        // Force la hue du HUD Starblast à une teinte cyan lumineuse quand neonHudEnabled.
-        // Le HUD (Il10l) propage sa couleur à tous les panneaux via setHue ; on mémorise la
-        // hue d'origine pour pouvoir la restaurer si on désactive le thème.
+        // Gestion HUD Néon Cyan en jeu
         if (window.modSettings && window.modSettings.neonHudEnabled) {
-            var neonScreen = game.display && game.display.screen && game.display.screen.Il10l;
-            if (neonScreen) {
+            var hudScreen = game.display && game.display.screen && game.display.screen.Il10l;
+            if (hudScreen) {
                 if (window.__origHudHue === undefined) {
-                    window.__origHudHue = neonScreen.hue !== undefined ? neonScreen.hue : 0;
+                    window.__origHudHue = hudScreen.hue !== undefined ? hudScreen.hue : 0;
                 }
-                var NEON_HUE = 185;   // ~cyan dans le modèle hsla(hue, ...) de Starblast
-                if (neonScreen.hue !== NEON_HUE && typeof neonScreen.setHue === 'function') {
-                    neonScreen.setHue(NEON_HUE);
+                var NEON_HUE = 185; // Cyan éclatant
+                if (hudScreen.hue !== NEON_HUE && typeof hudScreen.setHue === 'function') {
+                    hudScreen.setHue(NEON_HUE);
                 }
             }
         } else if (window.__origHudHue !== undefined) {
-            var _ns = game.display && game.display.screen && game.display.screen.Il10l;
-            if (_ns && typeof _ns.setHue === 'function' && _ns.hue !== window.__origHudHue) {
-                _ns.setHue(window.__origHudHue);
+            var _hs = game.display && game.display.screen && game.display.screen.Il10l;
+            if (_hs && typeof _hs.setHue === 'function' && _hs.hue !== window.__origHudHue) {
+                _hs.setHue(window.__origHudHue);
             }
             window.__origHudHue = undefined;
         }
     }, 200);
 
-    // Zoom fluide molette (FOV)
+    // =========================================================================
+    // 4. ZOOM HACK FLUIDE (FOV MULTIPLIER)
+    // =========================================================================
     window.customZoomMultiplier = 1.0;
     var targetZoomMultiplier = 1.0;
-    
+
     window.addEventListener('wheel', function(e) {
         if (!window.modSettings || !window.modSettings.fovEnabled) return;
         if (e.target.tagName === 'CANVAS') e.preventDefault();
-        
+
         if (e.deltaY < 0) {
             targetZoomMultiplier *= 0.97;
         } else if (e.deltaY > 0) {
@@ -3281,6 +3350,9 @@
     }
     updateSmoothZoom();
 
+    // =========================================================================
+    // 5. GESTION DES ÉMOTES CUSTOMS (E=Clown, J=Blank, I=Fire, V=Skull)
+    // =========================================================================
     function ensureCustomEmotes() {
         var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
         var chat = game && game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.chatpanel;
@@ -3290,18 +3362,11 @@
         if (!chat.Ol111.vocabulary) chat.Ol111.vocabulary = {};
 
         var vocab = chat.Ol111.vocabulary;
-        
         if (!vocab['J']) vocab['J'] = { icon: '\u2591', text: 'Blank' };
         if (!vocab['I']) vocab['I'] = { icon: '\ud83d\udd25', text: 'Fire' };
         if (!vocab['V']) vocab['V'] = { icon: '\ud83d\udc80', text: 'Skull' };
-        // Clown : écrase volontairement E (l'émote vanille "Me"), seule touche réellement
-        // libre pour l'utilisateur (U=upgrade, C refusée, toutes les autres prises).
         vocab['E'] = { icon: '\ud83e\udd21', text: 'Clown' };
 
-        // === Ajout des 4 émotes custom comme boutons de la 5ème ligne de la grille vanilla ===
-        // Le chatpanel vanilla construit ses boutons une seule fois au chargement, en plaçant
-        // chaque bouton via chat.add(btn, [col/5, .25*row, w, h]) -> 4 colonnes par ligne.
-        // On repositionne toute la grille en 5 lignes x 4 colonnes pour y caser les 4 customs.
         if (chat.__customEmotesInjected) return;
         if (!chat.buttons || chat.buttons.length === 0) return;
 
@@ -3316,7 +3381,6 @@
             var added = 0;
             for (var e = 0; e < customEmotes.length; e++) {
                 var ce = customEmotes[e];
-                // Évite de dupliquer un bouton existant avec la même touche
                 var exists = false;
                 for (var b = 0; b < chat.buttons.length; b++) {
                     if (chat.buttons[b].key === ce.key) { exists = true; break; }
@@ -3324,23 +3388,16 @@
                 if (exists) continue;
                 var newBtn = new btnClass(chat.Ol111 || game, ce.text, ce.icon, ce.key,
                     function(key) { return function() { chat.typed(key); }; }(ce.key));
-                // Positionne en dernière ligne, colonne progresse. Pour les lignes
-                // au-delà de la 4ème, on réduit l'espacement (.19 au lieu de .25)
-                // car le chatpanel n'a que la place pour 4 lignes à .25.
                 var idx = (chat.buttons.length + added);
                 var col = idx % 4;
                 var row = Math.floor(idx / 4);
-                var rowSpacing = row >= 4 ? .19 : .25;
-                chat.add(newBtn, [(col + 1) / 5 + .01, rowSpacing * row + .01, 1/5 - .02, .23]);
+                var rowSpacing = row >= 4 ? 0.19 : 0.25;
+                chat.add(newBtn, [(col + 1) / 5 + 0.01, rowSpacing * row + 0.01, 1/5 - 0.02, 0.23]);
                 chat.buttons.push(newBtn);
                 added++;
             }
-            // NE PAS repositionner les boutons existants : ça cassait la grille vanilla.
-            // Les customs sont ajoutés sur une nouvelle ligne, le vanilla reste intact.
             chat.__customEmotesInjected = true;
-        } catch (err) {
-            // ne rien casser si le chatpanel a une structure inattendue
-        }
+        } catch(err) {}
     }
     setInterval(ensureCustomEmotes, 1000);
 
@@ -3348,14 +3405,11 @@
         ensureCustomEmotes();
         var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
         var chat = game && game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.chatpanel;
-        if (chat) {
-            chat.typed(key);
-        }
+        if (chat) chat.typed(key);
     };
 
     window.addEventListener('keydown', function(e) {
-        if (e.altKey || e.ctrlKey || e.metaKey) return;
-        if (!e.key) return;
+        if (e.altKey || e.ctrlKey || e.metaKey || !e.key) return;
         var char = e.key.toUpperCase();
         var vanillaKeys = ['Y', 'G', 'P', 'B', 'T', 'F', 'A', 'H', 'K', 'Q', 'X', 'L', 'O', 'E', 'M', 'N', 'D', 'S', 'J', 'I', 'V'];
         if (vanillaKeys.indexOf(char) !== -1) {
@@ -3365,6 +3419,9 @@
         }
     }, true);
 
+    // =========================================================================
+    // 6. MACRO ÉMOTES GIF ANIMÉES
+    // =========================================================================
     (function() {
         var gifInterval = null;
         var animationIndex = 0;
@@ -3372,57 +3429,14 @@
         var completedChain = false;
 
         var macroPatterns = {
-            salute: [
-                ['L', 'Y', 'G', 'P', 'B', 'L'],
-                ['Y', 'G', 'P', 'B', 'L', 'Y'],
-                ['G', 'P', 'B', 'L', 'Y', 'G'],
-                ['P', 'B', 'L', 'Y', 'G', 'P'],
-                ['L', 'G', 'B', 'Y', 'P', 'L']
-            ],
-            tactic: [
-                ['T', 'F', 'A', 'H', 'K', 'T'],
-                ['A', 'H', 'K', 'F', 'T', 'A'],
-                ['F', 'T', 'H', 'K', 'A', 'F'],
-                ['H', 'K', 'F', 'T', 'A', 'H'],
-                ['T', 'A', 'K', 'F', 'H', 'T']
-            ],
-            hype: [
-                ['G', 'Y', 'X', 'P', 'L', 'G', 'Y'],
-                ['Y', 'G', 'P', 'X', 'L', 'Y', 'G'],
-                ['X', 'P', 'G', 'Y', 'L', 'X', 'P'],
-                ['P', 'G', 'Y', 'X', 'L', 'P', 'G'],
-                ['G', 'X', 'Y', 'P', 'L', 'G', 'X']
-            ],
-            fusion: [
-                ['G', 'J', 'Y', 'E', 'K', 'G'],
-                ['Y', 'E', 'G', 'J', 'K', 'Y'],
-                ['J', 'G', 'E', 'Y', 'K', 'J'],
-                ['G', 'J', 'E', 'Y', 'E', 'J', 'G']
-            ],
-            mode_tng: [
-                ['T', 'N', 'G', 'J', 'J'],
-                ['J', 'T', 'N', 'G', 'J'],
-                ['J', 'J', 'T', 'N', 'G'],
-                ['J', 'T', 'N', 'G', 'J'],
-                ['G', 'J', 'T', 'N', 'J', 'J']
-            ],
-            dancing: [
-                ['L', 'P', 'L', 'P', 'L', 'Y', 'L'],
-                ['Y', 'L', 'P', 'L', 'P', 'Y', 'L'],
-                ['P', 'L', 'Y', 'L', 'P', 'L', 'P'],
-                ['L', 'Y', 'P', 'L', 'Y', 'P', 'L']
-            ],
-            rain: [
-                ['G', 'S', 'G', 'S', 'G', 'S', 'G', 'S'],
-                ['S', 'G', 'S', 'G', 'S', 'G', 'S', 'G'],
-                ['G', 'S', 'S', 'G', 'G', 'S', 'S', 'G']
-            ],
-            epic: [
-                ['G', 'Y', 'H', 'K', 'G', 'Y', 'H', 'K'],
-                ['Y', 'H', 'K', 'G', 'Y', 'H', 'K', 'G'],
-                ['H', 'K', 'G', 'Y', 'H', 'K', 'G', 'Y'],
-                ['G', 'H', 'Y', 'K', 'G', 'H', 'Y', 'K']
-            ]
+            salute: [['L', 'Y', 'G', 'P', 'B', 'L'], ['Y', 'G', 'P', 'B', 'L', 'Y'], ['G', 'P', 'B', 'L', 'Y', 'G']],
+            tactic: [['T', 'F', 'A', 'H', 'K', 'T'], ['A', 'H', 'K', 'F', 'T', 'A'], ['F', 'T', 'H', 'K', 'A', 'F']],
+            hype:   [['G', 'Y', 'X', 'P', 'L', 'G', 'Y'], ['Y', 'G', 'P', 'X', 'L', 'Y', 'G']],
+            fusion: [['G', 'J', 'Y', 'E', 'K', 'G'], ['Y', 'E', 'G', 'J', 'K', 'Y'], ['J', 'G', 'E', 'Y', 'K', 'J']],
+            mode_tng: [['T', 'N', 'G', 'J', 'J'], ['J', 'T', 'N', 'G', 'J'], ['J', 'J', 'T', 'N', 'G']],
+            dancing: [['L', 'P', 'L', 'P', 'L', 'Y', 'L'], ['Y', 'L', 'P', 'L', 'P', 'Y', 'L']],
+            rain:   [['G', 'S', 'G', 'S', 'G', 'S', 'G', 'S'], ['S', 'G', 'S', 'G', 'S', 'G', 'S', 'G']],
+            epic:   [['G', 'Y', 'H', 'K', 'G', 'Y', 'H', 'K'], ['Y', 'H', 'K', 'G', 'Y', 'H', 'K', 'G']]
         };
 
         var vanillaFallbacks = { J: 'G', U: 'P', I: 'X', V: 'K' };
@@ -3430,49 +3444,39 @@
 
         window.startGifMacro = function() {
             if (gifInterval) clearInterval(gifInterval);
-            
             var speedSelect = document.getElementById('macro-speed');
-            var speed = speedSelect ? (parseInt(speedSelect.value) || 500) : 500;
-            
+            var speed = speedSelect ? (parseInt(speedSelect.value, 10) || 300) : 300;
             var presetSelect = document.getElementById('macro-preset');
             var preset = presetSelect ? presetSelect.value : 'salute';
-            
+
             animationIndex = 0;
             frameIndex = 0;
             completedChain = false;
-            
+
             gifInterval = setInterval(function() {
                 if (!window.modSettings || !window.modSettings.gifMacroEnabled) {
                     clearInterval(gifInterval);
                     gifInterval = null;
                     return;
                 }
-                
                 ensureCustomEmotes();
-
                 var game = window.gameInstance || (typeof Ol111 !== 'undefined' ? Ol111 : null);
                 var chat = game && game.display && game.display.screen && game.display.screen.Il10l && game.display.screen.Il10l.chatpanel;
                 if (!chat) return;
 
                 var vocabulary = chat.Ol111 && chat.Ol111.vocabulary;
-
                 var animations;
                 if (preset === 'mode_fixe') {
                     var pos1 = window.modSettings.fixedPos1Emote || 'L';
                     var pos3 = window.modSettings.lastTypedEmote || 'X';
-                    animations = [
-                        [pos1, 'J', pos3, 'J', pos1]
-                    ];
+                    animations = [[pos1, 'J', pos3, 'J', pos1]];
                 } else {
                     animations = macroPatterns[preset] || macroPatterns.salute;
                 }
 
                 var chainLength = chat.shown ? chat.phrase.length : 0;
-
                 if (chainLength === 0) {
-                    if (completedChain) {
-                        animationIndex = (animationIndex + 1) % animations.length;
-                    }
+                    if (completedChain) animationIndex = (animationIndex + 1) % animations.length;
                     frameIndex = 0;
                     completedChain = false;
                 } else {
@@ -3486,7 +3490,7 @@
                 if (vocabulary && !vocabulary[key]) {
                     key = vanillaFallbacks[key] && vocabulary[vanillaFallbacks[key]]
                         ? vanillaFallbacks[key]
-                        : vanillaKeys.find(function(candidate) { return vocabulary[candidate]; });
+                        : vanillaKeys.find(function(c) { return vocabulary[c]; });
                 }
                 if (!key) return;
 
@@ -3501,332 +3505,553 @@
                 gifInterval = null;
             }
         };
-
-        function initAnosToolbox() {
-            if (document.getElementById('anos-toolbox')) return;
-
-            var style = document.createElement('style');
-            style.innerHTML = "" +
-                "/* Style simple, couleurs sobres comme les panneaux du jeu */" +
-                "#anos-toolbox {" +
-                "    position: fixed;" +
-                "    left: auto;" +
-                "    top: 60px;" +
-                "    right: 20px;" +
-                "    width: 360px;" +
-                "    background: rgba(10,14,24,0.92);" +
-                "    backdrop-filter: blur(8px);" +
-                "    -webkit-backdrop-filter: blur(8px);" +
-                "    border: 1px solid rgba(255,255,255,0.12);" +
-                "    border-radius: 12px;" +
-                "    box-shadow: 0 8px 32px rgba(0,0,0,0.5);" +
-                "    color: #c8d6e5;" +
-                "    font-family: 'Play', 'Segoe UI', sans-serif;" +
-                "    z-index: 999999;" +
-                "    user-select: none;" +
-                "    -webkit-user-select: none;" +
-                "    display: none;" +
-                "    flex-direction: column;" +
-                "    overflow: hidden;" +
-                "    padding: 24px 20px 20px 20px;" +
-                "}" +
-                "#anos-toolbox.visible { display: flex; }" +
-                ".toolbox-header { display: flex; justify-content: space-between; align-items: center;" +
-                "  margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,0.1);" +
-                "  cursor: move; }" +
-                ".toolbox-header h3 { margin: 0; font-weight: 400; font-size: 14px; color: #8aa4c0; letter-spacing: 1px; }" +
-                ".toolbox-header .close-btn { cursor: pointer; font-size: 18px; color: #556; }" +
-                ".toolbox-header .close-btn:hover { color: #c44; }" +
-                ".toolbox-body { max-height: 420px; overflow-y: auto; }" +
-                ".toolbox-section { margin-bottom: 14px; }" +
-                ".toolbox-section:last-child { margin-bottom: 0; }" +
-                ".section-title { font-size: 10px; text-transform: uppercase; color: #5a7490;" +
-                "  margin-bottom: 10px; letter-spacing: 1.5px; font-weight: 600; }" +
-                ".setting-row { display: flex; justify-content: space-between; align-items: center;" +
-                "  margin-bottom: 10px; padding: 6px 0; }" +
-                ".setting-row:last-child { margin-bottom: 0; }" +
-                ".setting-info { display: flex; flex-direction: column; padding-right: 12px; flex: 1; }" +
-                ".setting-label { font-size: 12px; font-weight: 500; color: #bccfe0; }" +
-                ".setting-desc { font-size: 9px; color: #60758a; margin-top: 1px; }" +
-                ".switch { position: relative; display: inline-block; width: 36px; height: 20px;" +
-                "  flex-shrink: 0; }" +
-                ".switch input { opacity: 0; width: 0; height: 0; }" +
-                ".slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;" +
-                "  background: rgba(255,255,255,0.08); transition: 0.2s; border-radius: 20px;" +
-                "  border: 1px solid rgba(255,255,255,0.12); }" +
-                ".slider:before { position: absolute; content:''; height: 12px; width: 12px;" +
-                "  left: 2px; bottom: 2px; background: #8899aa; transition: 0.2s; border-radius: 50%; }" +
-                "input:checked + .slider { background: #2d6fb4; border-color: #4a90d9; }" +
-                "input:checked + .slider:before { transform: translateX(16px); background: #fff; }" +
-                ".toolbox-select { width: 100%; background: rgba(255,255,255,0.05);" +
-                "  border: 1px solid rgba(255,255,255,0.1); border-radius: 6px; color: #c8d6e5;" +
-                "  padding: 5px 8px; font-size: 11px; outline: none; cursor: pointer; margin-top: 4px; }" +
-                ".toolbox-select option { background: #1a1e2e; color: #c8d6e5; }" +
-                ".anon-btn { padding: 5px 10px; font-size: 12px; cursor: pointer; margin: 4px 0 0 0;" +
-                "  text-align: center; background: rgba(45,111,180,0.2); border: 1px solid rgba(74,144,217,0.3);" +
-                "  color: #8ab8e0; font-family: 'Play', sans-serif; border-radius: 6px; width: 100%; }" +
-                ".anon-btn:hover { background: rgba(45,111,180,0.35); }" +
-                "/* scrollbar fine */" +
-                ".toolbox-body::-webkit-scrollbar { width: 4px; }" +
-                ".toolbox-body::-webkit-scrollbar-track { background: transparent; }" +
-                ".toolbox-body::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.1); border-radius: 2px; }";
-            document.head.appendChild(style);
-
-            var div = document.createElement('div');
-            div.id = 'anos-toolbox';
-            div.innerHTML = '' +
-                '<div class="toolbox-header" id="toolbox-header">' +
-                '    <span class="drag-handle" style="flex:1; display:flex; align-items:center;">' +
-                '        <span style="margin-right:8px; opacity:0.6;">&#9776;</span>' +
-                '        <h3>Anos Cheat &amp; Macro Panel</h3>' +
-                '    </span>' +
-                '    <span class="close-btn" id="close-toolbox">&times;</span>' +
-                '</div>' +
-                '<div class="toolbox-body">' +
-                '    <div class="toolbox-section">' +
-                '        <div class="section-title">Cheats & Modifications</div>' +
-                '        <div class="setting-row">' +
-                '            <div class="setting-info">' +
-                '                <span class="setting-label">Zoom Hack (FOV)</span>' +
-                '                <span class="setting-desc">Scroll wheel to zoom camera</span>' +
-                '            </div>' +
-                '            <label class="switch">' +
-                '                <input type="checkbox" id="cheat-zoom" checked>' +
-                '                <span class="slider"></span>' +
-                '            </label>' +
-                '        </div>' +
-                '        <div class="setting-row">' +
-                '            <div class="setting-info">' +
-                '                <span class="setting-label">Fast Respawn</span>' +
-                '                <span class="setting-desc">Activer ou Enlever le Fast Respawn</span>' +
-                '            </div>' +
-                '            <label class="switch">' +
-                '                <input type="checkbox" id="cheat-fastrespawn">' +
-                '                <span class="slider"></span>' +
-                '            </label>' +
-                '        </div>' +
-                '    </div>' +
-                '    <div class="toolbox-section">' +
-                '        <div class="section-title">Emoji GIF Macro</div>' +
-                '        <div class="setting-row">' +
-                '            <div class="setting-info">' +
-                '                <span class="setting-label">Auto GIF Macro</span>' +
-                '                <span class="setting-desc">Toggle the emoji animation loop</span>' +
-                '            </div>' +
-                '            <label class="switch">' +
-                '                <input type="checkbox" id="macro-gif-toggle">' +
-                '                <span class="slider"></span>' +
-                '            </label>' +
-                '        </div>' +
-                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
-                '            <div class="setting-label">Preset Animation</div>' +
-                '            <select class="toolbox-select" id="macro-preset">' +
-                '                <option value="salute">Salute - Hello, Yes, GG, No Prob, Bye</option>' +
-                '                <option value="tactic">Tactic - Team, Follow, Attack, Help, Kill</option>' +
-                '                <option value="hype">Hype - GG, Yes, Thanks, No Prob, Hello</option>' +
-                '                <option value="fusion">Fusion (mixed) - GG, Custom, Yes, Custom, Kill</option>' +
-                '                <option value="mode_fixe">Mode 1 - Fixe1, Blank, Clavier/Custom, Blank, Fixe1</option>' +
-                '                <option value="mode_tng">Mode 2 - TOI NON GG (TNG) Defilant (G -> D)</option>' +
-                '                <option value="dancing">Dancing - Hello/NoProb pulse (rôti)</option>' +
-                '                <option value="rain">Rain - GG/Smile rafale</option>' +
-                '                <option value="epic">Epic - GG/Yes/Help/Kill chaîne longue</option>' +
-                '            </select>' +
-                '        </div>' +
-                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
-                '            <div class="setting-label">Pos 3 Emote (Mode 1)</div>' +
-                '            <select class="toolbox-select" id="macro-pos3-emote">' +
-                '                <option value="X">X - Thanks (Par defaut / Tape au clavier)</option>' +
-                '                <option value="G">G - GG</option>' +
-                '                <option value="Y">Y - Yes</option>' +
-                '                <option value="L">L - Hello</option>' +
-                '                <option value="S">S - Smile</option>' +
-                '                <option value="K">K - Kill</option>' +
-                '                <option value="H">H - Help</option>' +
-                '                <option value="E">E - Custom Clown</option>' +
-                '                <option value="V">V - Custom Skull</option>' +
-                '            </select>' +
-                '        </div>' +
-                '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
-                '            <div class="setting-label">Speed (Frame rate)</div>' +
-                '            <select class="toolbox-select" id="macro-speed">' +
-                '                <option value="60">Insane (60ms)</option>' +
-                '                <option value="90">Very Fast (90ms)</option>' +
-                '                <option value="120">Ultra (120ms)</option>' +
-                '                <option value="180">Fast (180ms)</option>' +
-                '                <option value="300" selected>Normal (300ms)</option>' +
-                '                <option value="500">Slow (500ms)</option>' +
-                '                <option value="800">Very Slow (800ms)</option>' +
-                '            </select>' +
-                '        </div>' +
-                '    </div>' +
-                '</div>';
-            document.body.appendChild(div);
-
-            // Initialiser l'état des checkboxes depuis les modSettings
-            document.getElementById('cheat-zoom').checked = window.modSettings.fovEnabled;
-            document.getElementById('cheat-fastrespawn').checked = window.modSettings.fastRespawnEnabled;
-            document.getElementById('macro-gif-toggle').checked = window.modSettings.gifMacroEnabled;
-
-            document.getElementById('close-toolbox').addEventListener('click', function() {
-                var panel = document.getElementById('anos-toolbox');
-                panel.classList.remove('visible');
-                setTimeout(function() { panel.style.display = 'none'; }, 300);
-            });
-
-            document.getElementById('cheat-zoom').addEventListener('change', function(e) {
-                window.modSettings.fovEnabled = e.target.checked;
-            });
-
-            document.getElementById('cheat-fastrespawn').addEventListener('change', function(e) {
-                window.modSettings.fastRespawnEnabled = e.target.checked;
-            });
-
-            document.getElementById('macro-gif-toggle').addEventListener('change', function(e) {
-                window.modSettings.gifMacroEnabled = e.target.checked;
-                if (e.target.checked) {
-                    window.startGifMacro();
-                } else {
-                    window.stopGifMacro();
-                }
-            });
-
-            document.getElementById('macro-preset').addEventListener('change', function() {
-                if (window.modSettings.gifMacroEnabled) {
-                    window.startGifMacro();
-                }
-            });
-
-            document.getElementById('macro-pos3-emote').addEventListener('change', function(e) {
-                window.modSettings.lastTypedEmote = e.target.value;
-                if (window.modSettings.gifMacroEnabled) {
-                    window.startGifMacro();
-                }
-            });
-
-            document.getElementById('macro-speed').addEventListener('change', function() {
-                if (window.modSettings.gifMacroEnabled) {
-                    window.startGifMacro();
-                }
-            });
-
-            // ===== TOOLBOX DÉPLAÇABLE À LA SOURIS =====
-            // La poignée de drag est tout le header (sauf le bouton close).
-            // La position est sauvegardée dans window._anosToolboxPos pour survivre à une
-            // réinitialisation de la toolbox et être rappelée à la réouverture (Alt+A).
-            var tbHeader = document.getElementById('toolbox-header');
-            var tbPanel = div;
-            var tbPos = window._anosToolboxPos;
-
-            function applyToolboxPos() {
-                var x = tbPos.x;
-                var y = tbPos.y;
-                // Empêcher la toolbox de sortir de l'écran
-                var w = tbPanel.offsetWidth;
-                var h = tbPanel.offsetHeight || 480;
-                x = Math.max(0, Math.min(window.innerWidth - w - 8, x));
-                y = Math.max(0, Math.min(window.innerHeight - 40, y));
-                tbPanel.style.left = x + 'px';
-                tbPanel.style.top = y + 'px';
-                tbPanel.style.right = 'auto';
-                tbPos.x = x;
-                tbPos.y = y;
-            }
-            // Exposer pour que le toggle Alt+A (hors initAnosToolbox) puisse recalculer la position
-            window._applyToolboxPos = applyToolboxPos;
-
-            if (!tbPos) {
-                // Position par défaut : coin supérieur droit (comme avant), en laissant un cran
-                var initW = tbPanel.offsetWidth || 340;
-                tbPos = {
-                    x: window.innerWidth - initW - 20,
-                    y: 60
-                };
-                window._anosToolboxPos = tbPos;
-            }
-
-            tbPanel.style.left = 'auto';
-            tbPanel.style.top = '60px';
-
-            var dragging = false;
-            var startX = 0;
-            var startY = 0;
-            var startLeft = 0;
-            var startTop = 0;
-
-            tbHeader.addEventListener('mousedown', function(e) {
-                // Ne pas démarrer le drag sur le bouton close ni sur les contrôles form
-                var target = e.target;
-                if (target && (target.closest ? target.closest('.close-btn') : false)) return;
-                e.preventDefault();
-                dragging = true;
-                startX = e.clientX;
-                startY = e.clientY;
-                var rect = tbPanel.getBoundingClientRect();
-                startLeft = rect.left;
-                startTop = rect.top;
-                tbPanel.style.transition = 'opacity 0.3s ease';
-            });
-
-            document.addEventListener('mousemove', function(e) {
-                if (!dragging) return;
-                var dx = e.clientX - startX;
-                var dy = e.clientY - startY;
-                tbPos.x = startLeft + dx;
-                tbPos.y = startTop + dy;
-                applyToolboxPos();
-            });
-
-            document.addEventListener('mouseup', function() {
-                if (dragging) {
-                    dragging = false;
-                    tbPanel.style.transition = 'opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1)';
-                }
-            });
-
-            // Appliquer une position enregistrée lors de l'ouverture (Alt+A)
-            var origHeaderMousedown = tbHeader.onmousedown;
-            tbHeader.addEventListener('mousedown', function() {
-                // Petite pause pour laisser .visible s'appliquer avant de lire les dimensions
-                setTimeout(applyToolboxPos, 50);
-            });
-        }
-
-        if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', initAnosToolbox);
-        } else {
-            initAnosToolbox();
-        }
-
-        window.addEventListener('keydown', function(e) {
-            var isA = (e.code === 'KeyA' || e.keyCode === 65 || (e.key && e.key.toLowerCase() === 'a'));
-            if (!e.altKey || !isA || e.repeat) return;
-
-            e.preventDefault();
-            if (e.stopImmediatePropagation) e.stopImmediatePropagation();
-            if (e.stopPropagation) e.stopPropagation();
-
-            var panel = document.getElementById('anos-toolbox');
-            if (!panel) {
-                initAnosToolbox();
-                panel = document.getElementById('anos-toolbox');
-            }
-            if (!panel) return;
-
-            if (panel.classList.contains('visible')) {
-                panel.classList.remove('visible');
-                setTimeout(function() { panel.style.display = 'none'; }, 300);
-            } else {
-                panel.style.display = 'flex';
-                panel.offsetHeight;
-                panel.classList.add('visible');
-                // Recalculer la position (position sauvegardée par drag, ou coin droit par défaut)
-                if (window._applyToolboxPos) {
-                    setTimeout(window._applyToolboxPos, 50);
-                }
-            }
-        }, true);
-
     })();
+
+    // =========================================================================
+    // 7. TOOLBOX CYBERPUNK DÉPLAÇABLE (RACCOURCI CLAVIER ALT+A)
+    // =========================================================================
+    function initAnosToolbox() {
+        if (document.getElementById('anos-toolbox')) return;
+
+        var style = document.createElement('style');
+        style.innerHTML = [
+            '#anos-toolbox {',
+            '    position: fixed; left: auto; top: 60px; right: 20px; width: 370px;',
+            '    background: rgba(8, 14, 28, 0.94);',
+            '    backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);',
+            '    border: 1px solid rgba(0, 240, 255, 0.35);',
+            '    border-radius: 14px;',
+            '    box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 20px rgba(0, 240, 255, 0.2);',
+            '    color: #cbe6ff; font-family: "Play", "Segoe UI", sans-serif;',
+            '    z-index: 999999; user-select: none; -webkit-user-select: none;',
+            '    display: none; flex-direction: column; overflow: hidden;',
+            '    padding: 20px;',
+            '}',
+            '#anos-toolbox.visible { display: flex; }',
+            '.toolbox-header {',
+            '    display: flex; justify-content: space-between; align-items: center;',
+            '    margin-bottom: 14px; padding-bottom: 10px;',
+            '    border-bottom: 1px solid rgba(0, 240, 255, 0.2); cursor: move;',
+            '}',
+            '.toolbox-header h3 { margin: 0; font-family: "Orbitron", sans-serif; font-size: 13px; color: #00f0ff; letter-spacing: 1.5px; }',
+            '.toolbox-header .close-btn { cursor: pointer; font-size: 20px; color: #7090b0; transition: color 0.2s; }',
+            '.toolbox-header .close-btn:hover { color: #ff2df7; }',
+            '.toolbox-body { max-height: 440px; overflow-y: auto; padding-right: 4px; }',
+            '.toolbox-section { margin-bottom: 14px; }',
+            '.section-title {',
+            '    font-size: 11px; text-transform: uppercase; color: #00f0ff;',
+            '    margin-bottom: 8px; letter-spacing: 1.5px; font-weight: 700;',
+            '}',
+            '.setting-row {',
+            '    display: flex; justify-content: space-between; align-items: center;',
+            '    margin-bottom: 8px; padding: 6px 8px; background: rgba(0, 240, 255, 0.03);',
+            '    border: 1px solid rgba(0, 240, 255, 0.08); border-radius: 6px;',
+            '}',
+            '.setting-info { display: flex; flex-direction: column; padding-right: 10px; flex: 1; }',
+            '.setting-label { font-size: 12px; font-weight: 600; color: #d0ecff; }',
+            '.setting-desc { font-size: 9px; color: #6a8ba8; margin-top: 2px; }',
+            '.switch { position: relative; display: inline-block; width: 36px; height: 20px; flex-shrink: 0; }',
+            '.switch input { opacity: 0; width: 0; height: 0; }',
+            '.slider {',
+            '    position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0;',
+            '    background: rgba(255,255,255,0.1); transition: 0.25s; border-radius: 20px;',
+            '    border: 1px solid rgba(255,255,255,0.2);',
+            '}',
+            '.slider:before {',
+            '    position: absolute; content:""; height: 12px; width: 12px;',
+            '    left: 3px; bottom: 3px; background: #88aacc; transition: 0.25s; border-radius: 50%;',
+            '}',
+            'input:checked + .slider { background: #0088cc; border-color: #00f0ff; box-shadow: 0 0 8px rgba(0,240,255,0.5); }',
+            'input:checked + .slider:before { transform: translateX(16px); background: #ffffff; }',
+            '.toolbox-select {',
+            '    width: 100%; background: rgba(6, 16, 36, 0.85);',
+            '    border: 1px solid rgba(0, 240, 255, 0.25); border-radius: 6px; color: #c8edff;',
+            '    padding: 6px 8px; font-size: 11px; outline: none; cursor: pointer; margin-top: 4px;',
+            '}',
+            '.toolbox-select option { background: #0b1426; color: #c8edff; }',
+            '.toolbox-body::-webkit-scrollbar { width: 4px; }',
+            '.toolbox-body::-webkit-scrollbar-track { background: transparent; }',
+            '.toolbox-body::-webkit-scrollbar-thumb { background: rgba(0, 240, 255, 0.25); border-radius: 2px; }'
+        ].join('\n');
+        document.head.appendChild(style);
+
+        var div = document.createElement('div');
+        div.id = 'anos-toolbox';
+        div.innerHTML = '' +
+            '<div class="toolbox-header" id="toolbox-header">' +
+            '    <span class="drag-handle" style="flex:1; display:flex; align-items:center;">' +
+            '        <span style="margin-right:8px; color:#00f0ff;">&#9776;</span>' +
+            '        <h3>Anos Control &amp; Macro Panel</h3>' +
+            '    </span>' +
+            '    <span class="close-btn" id="close-toolbox">&times;</span>' +
+            '</div>' +
+            '<div class="toolbox-body">' +
+            '    <div class="toolbox-section">' +
+            '        <div class="section-title">⚡ Hacks &amp; Tweaks</div>' +
+            '        <div class="setting-row">' +
+            '            <div class="setting-info">' +
+            '                <span class="setting-label">Zoom Hack (FOV)</span>' +
+            '                <span class="setting-desc">Molette souris pour zoomer/dézoomer</span>' +
+            '            </div>' +
+            '            <label class="switch"><input type="checkbox" id="cheat-zoom" checked><span class="slider"></span></label>' +
+            '        </div>' +
+            '        <div class="setting-row">' +
+            '            <div class="setting-info">' +
+            '                <span class="setting-label">Fast Respawn Instantané</span>' +
+            '                <span class="setting-desc">Réapparition immédiate sans délai</span>' +
+            '            </div>' +
+            '            <label class="switch"><input type="checkbox" id="cheat-fastrespawn"><span class="slider"></span></label>' +
+            '        </div>' +
+            '    </div>' +
+            '    <div class="toolbox-section">' +
+            '        <div class="section-title">🎭 GIF Macro Émotes</div>' +
+            '        <div class="setting-row">' +
+            '            <div class="setting-info">' +
+            '                <span class="setting-label">Boucle Automatique</span>' +
+            '                <span class="setting-desc">Animation continue des émotes</span>' +
+            '            </div>' +
+            '            <label class="switch"><input type="checkbox" id="macro-gif-toggle"><span class="slider"></span></label>' +
+            '        </div>' +
+            '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
+            '            <div class="setting-label">Preset Animation</div>' +
+            '            <select class="toolbox-select" id="macro-preset">' +
+            '                <option value="salute">Salute - Hello, Yes, GG, No Prob, Bye</option>' +
+            '                <option value="tactic">Tactic - Team, Follow, Attack, Help, Kill</option>' +
+            '                <option value="hype">Hype - GG, Yes, Thanks, No Prob, Hello</option>' +
+            '                <option value="fusion">Fusion (mixed) - GG, Custom, Yes, Custom, Kill</option>' +
+            '                <option value="mode_fixe">Mode 1 - Fixe1, Blank, Clavier/Custom, Blank, Fixe1</option>' +
+            '                <option value="mode_tng">Mode 2 - TOI NON GG (TNG) Defilant (G -> D)</option>' +
+            '                <option value="dancing">Dancing - Hello/NoProb pulse (rôti)</option>' +
+            '                <option value="rain">Rain - GG/Smile rafale</option>' +
+            '                <option value="epic">Epic - GG/Yes/Help/Kill chaîne longue</option>' +
+            '            </select>' +
+            '        </div>' +
+            '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
+            '            <div class="setting-label">Emote Custom (Pos 3)</div>' +
+            '            <select class="toolbox-select" id="macro-pos3-emote">' +
+            '                <option value="X">X - Thanks</option>' +
+            '                <option value="G">G - GG</option>' +
+            '                <option value="Y">Y - Yes</option>' +
+            '                <option value="L">L - Hello</option>' +
+            '                <option value="S">S - Smile</option>' +
+            '                <option value="K">K - Kill</option>' +
+            '                <option value="H">H - Help</option>' +
+            '                <option value="E">E - Custom Clown</option>' +
+            '                <option value="V">V - Custom Skull</option>' +
+            '            </select>' +
+            '        </div>' +
+            '        <div class="setting-row" style="flex-direction: column; align-items: flex-start;">' +
+            '            <div class="setting-label">Vitesse de boucle (FPS)</div>' +
+            '            <select class="toolbox-select" id="macro-speed">' +
+            '                <option value="60">Insane (60ms)</option>' +
+            '                <option value="90">Ultra Fast (90ms)</option>' +
+            '                <option value="120">Fast (120ms)</option>' +
+            '                <option value="180">Moderate (180ms)</option>' +
+            '                <option value="300" selected>Normal (300ms)</option>' +
+            '                <option value="500">Slow (500ms)</option>' +
+            '                <option value="800">Relax (800ms)</option>' +
+            '            </select>' +
+            '        </div>' +
+            '    </div>' +
+            '</div>';
+        document.body.appendChild(div);
+
+        document.getElementById('cheat-zoom').checked = window.modSettings.fovEnabled;
+        document.getElementById('cheat-fastrespawn').checked = window.modSettings.fastRespawnEnabled;
+        document.getElementById('macro-gif-toggle').checked = window.modSettings.gifMacroEnabled;
+
+        document.getElementById('close-toolbox').addEventListener('click', function() {
+            div.classList.remove('visible');
+            setTimeout(function() { div.style.display = 'none'; }, 300);
+        });
+
+        document.getElementById('cheat-zoom').addEventListener('change', function(e) {
+            window.modSettings.fovEnabled = e.target.checked;
+        });
+
+        document.getElementById('cheat-fastrespawn').addEventListener('change', function(e) {
+            window.modSettings.fastRespawnEnabled = e.target.checked;
+        });
+
+        document.getElementById('macro-gif-toggle').addEventListener('change', function(e) {
+            window.modSettings.gifMacroEnabled = e.target.checked;
+            if (e.target.checked) window.startGifMacro();
+            else window.stopGifMacro();
+        });
+
+        document.getElementById('macro-preset').addEventListener('change', function() {
+            if (window.modSettings.gifMacroEnabled) window.startGifMacro();
+        });
+
+        document.getElementById('macro-pos3-emote').addEventListener('change', function(e) {
+            window.modSettings.lastTypedEmote = e.target.value;
+            if (window.modSettings.gifMacroEnabled) window.startGifMacro();
+        });
+
+        document.getElementById('macro-speed').addEventListener('change', function() {
+            if (window.modSettings.gifMacroEnabled) window.startGifMacro();
+        });
+
+        // Déplacement par drag & drop
+        var tbHeader = document.getElementById('toolbox-header');
+        var tbPanel = div;
+        var tbPos = window._anosToolboxPos || { x: window.innerWidth - 390, y: 60 };
+        window._anosToolboxPos = tbPos;
+
+        function applyToolboxPos() {
+            var x = Math.max(0, Math.min(window.innerWidth - 380, tbPos.x));
+            var y = Math.max(0, Math.min(window.innerHeight - 60, tbPos.y));
+            tbPanel.style.left = x + 'px';
+            tbPanel.style.top = y + 'px';
+            tbPanel.style.right = 'auto';
+            tbPos.x = x; tbPos.y = y;
+        }
+        window._applyToolboxPos = applyToolboxPos;
+
+        var dragging = false, startX = 0, startY = 0, startLeft = 0, startTop = 0;
+        tbHeader.addEventListener('mousedown', function(e) {
+            if (e.target.closest && e.target.closest('.close-btn')) return;
+            e.preventDefault();
+            dragging = true;
+            startX = e.clientX; startY = e.clientY;
+            var r = tbPanel.getBoundingClientRect();
+            startLeft = r.left; startTop = r.top;
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (!dragging) return;
+            tbPos.x = startLeft + (e.clientX - startX);
+            tbPos.y = startTop + (e.clientY - startY);
+            applyToolboxPos();
+        });
+        document.addEventListener('mouseup', function() { dragging = false; });
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', initAnosToolbox);
+    else initAnosToolbox();
+
+    window.addEventListener('keydown', function(e) {
+        var isA = (e.code === 'KeyA' || e.keyCode === 65 || (e.key && e.key.toLowerCase() === 'a'));
+        if (!e.altKey || !isA || e.repeat) return;
+        e.preventDefault();
+        var panel = document.getElementById('anos-toolbox');
+        if (!panel) { initAnosToolbox(); panel = document.getElementById('anos-toolbox'); }
+        if (!panel) return;
+
+        if (panel.classList.contains('visible')) {
+            panel.classList.remove('visible');
+            setTimeout(function() { panel.style.display = 'none'; }, 300);
+        } else {
+            panel.style.display = 'flex';
+            panel.offsetHeight;
+            panel.classList.add('visible');
+            if (window._applyToolboxPos) setTimeout(window._applyToolboxPos, 50);
+        }
+    }, true);
+
+    // =========================================================================
+    // 8. MODULE BADGE MANAGER (INTÉGRATION COMPLÈTE)
+    // =========================================================================
+    (function initBadgeManager() {
+        var socialDiv = document.querySelector('.social');
+        if (!socialDiv) return;
+
+        var alienIcon = document.createElement('i');
+        alienIcon.className = 'sbg sbg-alien';
+        alienIcon.title = 'Badge Manager';
+        socialDiv.appendChild(alienIcon);
+
+        var badgeManager = null;
+        alienIcon.addEventListener('mousedown', function(event) {
+            event.stopPropagation();
+            if (badgeManager) {
+                badgeManager.style.display = badgeManager.style.display === 'none' ? 'block' : 'none';
+                return;
+            }
+
+            badgeManager = document.createElement('div');
+            badgeManager.id = 'badge-manager';
+            Object.assign(badgeManager.style, {
+                width: '420px', maxHeight: '520px',
+                background: 'rgba(8, 14, 28, 0.95)',
+                borderRadius: '14px', padding: '20px',
+                boxShadow: '0 0 30px rgba(0,0,0,0.8), 0 0 20px rgba(0,240,255,0.3)',
+                border: '1px solid rgba(0,240,255,0.4)',
+                position: 'fixed', left: '50%', top: '50%',
+                transform: 'translate(-50%, -50%)',
+                backdropFilter: 'blur(12px)',
+                zIndex: '999999', display: 'block',
+                overflow: 'auto', color: '#c8e8ff',
+                fontFamily: '"Play", sans-serif'
+            });
+
+            var offsetX, offsetY, isDragging = false;
+            badgeManager.addEventListener('mousedown', function(e) {
+                if (e.target.tagName === 'BUTTON' || e.target.tagName === 'INPUT') return;
+                isDragging = true;
+                offsetX = e.clientX - badgeManager.getBoundingClientRect().left;
+                offsetY = e.clientY - badgeManager.getBoundingClientRect().top;
+            });
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                badgeManager.style.left = (e.clientX - offsetX) + 'px';
+                badgeManager.style.top = (e.clientY - offsetY) + 'px';
+                badgeManager.style.transform = 'none';
+            });
+            document.addEventListener('mouseup', function() { isDragging = false; });
+
+            var closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕';
+            Object.assign(closeBtn.style, {
+                position: 'absolute', top: '10px', right: '12px',
+                background: 'transparent', border: 'none', color: '#ff2df7',
+                fontSize: '18px', cursor: 'pointer'
+            });
+            closeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                badgeManager.remove();
+                badgeManager = null;
+            });
+            badgeManager.appendChild(closeBtn);
+
+            var header = document.createElement('h3');
+            header.textContent = '🎖️ Custom Badge Manager';
+            header.style.marginTop = '0';
+            header.style.fontFamily = '"Orbitron", sans-serif';
+            header.style.color = '#00f0ff';
+            header.style.textShadow = '0 0 10px rgba(0,240,255,0.5)';
+            badgeManager.appendChild(header);
+
+            var addBtn = document.createElement('button');
+            addBtn.textContent = '+ Ajouter un badge';
+            Object.assign(addBtn.style, {
+                padding: '8px 16px', cursor: 'pointer',
+                background: 'rgba(0,240,255,0.2)',
+                border: '1px solid rgba(0,240,255,0.5)',
+                color: '#c0f0ff', borderRadius: '6px',
+                marginBottom: '12px', fontFamily: '"Orbitron", sans-serif',
+                fontWeight: 'bold'
+            });
+            addBtn.addEventListener('click', function() {
+                var name = prompt('Nom du badge :');
+                if (!name) return;
+                var url = prompt("URL de l'image (jpg/png) :");
+                if (!url || !/^https?:\/\/.+\.(jpg|png|webp|gif)/i.test(url)) {
+                    alert('URL invalide (doit pointer vers un lien jpg/png/webp direct).');
+                    return;
+                }
+                saveBadge(name, url);
+                displayBadge(name, url);
+            });
+            badgeManager.appendChild(addBtn);
+
+            var badgeList = document.createElement('div');
+            badgeList.id = 'badge-list';
+            badgeManager.appendChild(badgeList);
+
+            function saveBadge(name, url) {
+                var badges = JSON.parse(localStorage.getItem('badgergers') || '[]');
+                badges.push({ name: name, url: url });
+                localStorage.setItem('badgergers', JSON.stringify(badges));
+            }
+
+            function displayBadge(name, url) {
+                var row = document.createElement('div');
+                Object.assign(row.style, {
+                    display: 'flex', alignItems: 'center', marginBottom: '8px',
+                    padding: '6px 10px', background: 'rgba(0,240,255,0.06)',
+                    border: '1px solid rgba(0,240,255,0.15)', borderRadius: '8px'
+                });
+                var img = document.createElement('img');
+                img.src = url;
+                Object.assign(img.style, {
+                    width: '44px', height: '44px', borderRadius: '6px',
+                    objectFit: 'cover', marginRight: '12px'
+                });
+                row.appendChild(img);
+                var lbl = document.createElement('span');
+                lbl.textContent = name;
+                lbl.style.flex = '1';
+                lbl.style.fontWeight = 'bold';
+                row.appendChild(lbl);
+                var delBtn = document.createElement('button');
+                delBtn.textContent = '✕';
+                Object.assign(delBtn.style, {
+                    background: 'transparent', border: 'none',
+                    color: '#ff6b6b', cursor: 'pointer', fontSize: '16px'
+                });
+                delBtn.addEventListener('click', function() {
+                    row.remove();
+                    updateStorage();
+                });
+                row.appendChild(delBtn);
+                document.getElementById('badge-list').appendChild(row);
+            }
+
+            function updateStorage() {
+                var badges = [];
+                document.querySelectorAll('#badge-list div').forEach(function(row) {
+                    var n = row.querySelector('span');
+                    var i = row.querySelector('img');
+                    if (n && i) badges.push({ name: n.textContent, url: i.src });
+                });
+                if (badges.length > 0) localStorage.setItem('badgergers', JSON.stringify(badges));
+                else localStorage.removeItem('badgergers');
+            }
+
+            document.body.appendChild(badgeManager);
+            var saved = JSON.parse(localStorage.getItem('badgergers') || '[]');
+            saved.forEach(function(b) { displayBadge(b.name, b.url); });
+        });
+    })();
+
+    // =========================================================================
+    // 9. MODULE CLIENT SETTINGS MANAGER (SETTINGATABSES INTÉGRÉ)
+    // =========================================================================
+    (function initSettingsManager() {
+        var socialDiv = document.querySelector('.social');
+        if (!socialDiv) return;
+
+        var menuIcon = document.createElement('i');
+        menuIcon.className = 'sbg sbg-menu';
+        menuIcon.title = 'Client Advanced Settings';
+        socialDiv.appendChild(menuIcon);
+
+        var settingsTab = null;
+        menuIcon.addEventListener('mousedown', function(event) {
+            event.stopPropagation();
+            if (settingsTab) {
+                settingsTab.style.display = settingsTab.style.display === 'none' ? 'block' : 'none';
+                return;
+            }
+
+            settingsTab = document.createElement('div');
+            settingsTab.id = 'settings-manager';
+            Object.assign(settingsTab.style, {
+                width: '460px', maxHeight: '560px',
+                background: 'rgba(8, 14, 28, 0.96)',
+                borderRadius: '14px', padding: '24px',
+                boxShadow: '0 0 35px rgba(0,0,0,0.8), 0 0 25px rgba(0,240,255,0.3)',
+                border: '1px solid rgba(0,240,255,0.4)',
+                position: 'fixed', left: '50%', top: '50%',
+                transform: 'translate(-50%, -50%)',
+                backdropFilter: 'blur(12px)',
+                zIndex: '999999', display: 'block',
+                overflow: 'auto', color: '#c8e8ff',
+                fontFamily: '"Play", sans-serif'
+            });
+
+            var offsetX, offsetY, isDragging = false;
+            settingsTab.addEventListener('mousedown', function(e) {
+                var tag = e.target.tagName;
+                if (tag === 'INPUT' || tag === 'BUTTON' || tag === 'SELECT') return;
+                isDragging = true;
+                offsetX = e.clientX - settingsTab.getBoundingClientRect().left;
+                offsetY = e.clientY - settingsTab.getBoundingClientRect().top;
+            });
+            document.addEventListener('mousemove', function(e) {
+                if (!isDragging) return;
+                settingsTab.style.left = (e.clientX - offsetX) + 'px';
+                settingsTab.style.top = (e.clientY - offsetY) + 'px';
+                settingsTab.style.transform = 'none';
+            });
+            document.addEventListener('mouseup', function() { isDragging = false; });
+
+            var closeBtn = document.createElement('button');
+            closeBtn.textContent = '✕';
+            Object.assign(closeBtn.style, {
+                position: 'absolute', top: '10px', right: '12px',
+                background: 'transparent', border: 'none', color: '#ff2df7',
+                fontSize: '18px', cursor: 'pointer'
+            });
+            closeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                settingsTab.remove();
+                settingsTab = null;
+            });
+            settingsTab.appendChild(closeBtn);
+
+            var header = document.createElement('h3');
+            header.textContent = '⚙️ Client Preferences & Tweaks';
+            header.style.marginTop = '0';
+            header.style.fontFamily = '"Orbitron", sans-serif';
+            header.style.color = '#00f0ff';
+            header.style.textShadow = '0 0 10px rgba(0,240,255,0.5)';
+            settingsTab.appendChild(header);
+
+            var items = [
+                { id: 'lowercaseName', key: 'lownamecase', label: 'Lowercase Name (Minuscules dans le pseudo)' },
+                { id: 'uncoverLeader', key: 'leaderunde', label: 'Uncover Leader (Révéler position du leader)' },
+                { id: 'blankbadge', key: 'goodles', label: 'Blank Badges (Masquer les badges vanille)' },
+                { id: 'blurlol', key: 'blurdes', label: 'Blur Effect (Effets de flou d\'arrière-plan)' },
+                { id: 'removeTimer', key: 'timdel', label: 'Remove Timer (Retirer chrono partie)' },
+                { id: 'stationists', key: 'stationisten', label: 'Custom Station Modules' },
+                { id: 'weaponists', key: 'weaponisten', label: 'Custom Weapon Modules' },
+                { id: 'voicechat', key: 'oiceat', label: 'Voice Chat Integration' }
+            ];
+
+            var container = document.createElement('div');
+            items.forEach(function(item) {
+                var row = document.createElement('div');
+                Object.assign(row.style, {
+                    display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                    padding: '6px 8px', marginBottom: '6px', background: 'rgba(0,240,255,0.04)',
+                    border: '1px solid rgba(0,240,255,0.1)', borderRadius: '6px'
+                });
+                var lbl = document.createElement('label');
+                lbl.textContent = item.label;
+                lbl.style.fontSize = '12px';
+                lbl.style.cursor = 'pointer';
+
+                var chk = document.createElement('input');
+                chk.type = 'checkbox';
+                chk.id = item.id;
+                chk.checked = !!window.modSettings[item.id];
+                chk.addEventListener('change', function() {
+                    window.modSettings[item.id] = chk.checked;
+                    localStorage.setItem(item.key, JSON.stringify(chk.checked));
+                    if (item.id === 'lowercaseName' && chk.checked) {
+                        var inp = document.querySelector('#player input');
+                        if (inp) inp.value = inp.value.toLowerCase();
+                    }
+                });
+
+                row.appendChild(lbl);
+                row.appendChild(chk);
+                container.appendChild(row);
+            });
+            settingsTab.appendChild(container);
+
+            // Gem Color Picker
+            var gemRow = document.createElement('div');
+            Object.assign(gemRow.style, {
+                display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                padding: '6px 8px', marginTop: '8px', background: 'rgba(0,240,255,0.04)',
+                border: '1px solid rgba(0,240,255,0.1)', borderRadius: '6px'
+            });
+            var gemLbl = document.createElement('span');
+            gemLbl.textContent = '💎 Gem Custom Color:';
+            gemLbl.style.fontSize = '12px';
+            var gemInput = document.createElement('input');
+            gemInput.type = 'color';
+            gemInput.value = window.modSettings.gemColor || '#00f0ff';
+            gemInput.addEventListener('input', function() {
+                window.modSettings.gemColor = gemInput.value;
+                localStorage.setItem('gemindeed', gemInput.value);
+            });
+            gemRow.appendChild(gemLbl);
+            gemRow.appendChild(gemInput);
+            settingsTab.appendChild(gemRow);
+
+            document.body.appendChild(settingsTab);
+        });
+    })();
+
+    // Application immédiate du pseudo en minuscules si actif
+    if (window.modSettings.lowercaseName) {
+        var inp = document.querySelector('#player input');
+        if (inp) inp.value = inp.value.toLowerCase();
+    }
+
 })();
 </script>
 </body>
