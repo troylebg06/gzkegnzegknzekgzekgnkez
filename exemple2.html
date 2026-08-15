@@ -2897,18 +2897,16 @@
         this.texture = new THREE.Texture(this.canvas),
         this.texture.minFilter = THREE.LinearFilter,
         this.texture.magFilter = THREE.LinearFilter,
-        this.texture.generateMipmaps = !1,
         this.geom = new THREE.PlaneGeometry(1, 1),
         this.material = new THREE.MeshBasicMaterial({
             map: this.texture,
             transparent: !0,
             depthTest: !1,
             depthWrite: !1,
-            side: THREE.DoubleSide
+            blending: THREE.AdditiveBlending
         }),
         this.mesh = new THREE.Mesh(this.geom, this.material),
-        this.mesh.position.set(0, 0, 1),
-        this.mesh.renderOrder = 100,
+        this.mesh.position.set(0, 0, 0),
         this.wasDrawn = !1
     }
     return t.prototype.draw = function (dots) {
@@ -2934,39 +2932,66 @@
         }
         
         var zoom = (typeof window !== "undefined" && window.modSettings && window.modSettings.radarZoomValue) || (this.Ol111.mode ? this.Ol111.mode.radar_zoom : 2.0) || 2.0;
-        var myId = this.Ol111.IO1OO && this.Ol111.IO1OO.I0lO1 && this.Ol111.IO1OO.I0lO1.status ? this.Ol111.IO1OO.I0lO1.status.id : -1;
+        var myId = this.Ol111.IO1OO && this.Ol111.IO1OO.I0lO1 && this.Ol111.IO1OO.I0lO1.status ? this.Ol111.IO1OO.I0lO1.status.id : (this.Ol111.I0lO1 ? this.Ol111.I0lO1.status.id : -1);
         
         var shipsToDraw = {};
-        if (dots && dots.activeRadarShips) {
-            for (var i = 0; i < dots.activeRadarShips.length; i++) {
-                var s = dots.activeRadarShips[i];
-                if (s && s.id !== undefined) shipsToDraw[s.id] = s;
-            }
-        }
+        
+        // 1. Vaisseaux depuis dots.posmap (toujours synchronisés avec le radar)
         if (dots && dots.posmap) {
             for (var pid in dots.posmap) {
-                var pm = dots.posmap[pid];
-                if (pm && pm.x !== undefined && !shipsToDraw[pid]) {
-                    shipsToDraw[pid] = { id: parseInt(pid, 10), x: pm.x, y: pm.y };
+                var pIdInt = parseInt(pid, 10);
+                if (pIdInt < 1000) {
+                    var pm = dots.posmap[pid];
+                    if (pm && typeof pm.x === "number" && typeof pm.y === "number") {
+                        shipsToDraw[pIdInt] = { id: pIdInt, x: pm.x, y: pm.y };
+                    }
                 }
             }
         }
+        
+        // 2. Vaisseaux depuis dots.activeRadarShips
+        if (dots && dots.activeRadarShips) {
+            for (var i = 0; i < dots.activeRadarShips.length; i++) {
+                var s = dots.activeRadarShips[i];
+                if (s && s.id !== undefined) {
+                    shipsToDraw[s.id] = {
+                        id: s.id,
+                        x: s.x,
+                        y: s.y,
+                        isLeader: !!s.isLeader
+                    };
+                }
+            }
+        }
+        
+        // 3. Vaisseaux depuis le dictionnaire live
         var liveDict = this.Ol111.IO1OO && this.Ol111.IO1OO.lOII1 && this.Ol111.IO1OO.lOII1.OI0I0;
         if (liveDict && this.Ol111.OI0ll) {
             for (var lid in liveDict) {
                 var ent = liveDict[lid];
                 if (ent && ent.lOOlI && ent.lOOlI.status) {
                     var st = ent.lOOlI.status;
-                    shipsToDraw[lid] = {
-                        id: parseInt(lid, 10),
+                    var lIdInt = parseInt(lid, 10);
+                    shipsToDraw[lIdInt] = {
+                        id: lIdInt,
                         x: st.x / this.Ol111.OI0ll,
                         y: st.y / this.Ol111.OI0ll,
-                        hue: st.hue,
                         name: st.name
                     };
                 }
             }
         }
+        
+        // 4. Inclure notre propre vaisseau au centre
+        if (myId !== -1 && !shipsToDraw[myId]) {
+            shipsToDraw[myId] = { id: myId, x: myX, y: myY };
+        }
+        
+        // Configuration de la police en BLANC PUR
+        ctx.font = "bold 13px 'Play', 'Orbitron', Arial, sans-serif";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "bottom";
+        ctx.fillStyle = "#ffffff";
         
         for (var sid in shipsToDraw) {
             var ship = shipsToDraw[sid];
@@ -2983,31 +3008,28 @@
             var cy = 256 - ry * 256;
             var distSq = (cx - 256) * (cx - 256) + (cy - 256) * (cy - 256);
             if (distSq <= 245 * 245) {
-                var fetchedName = this.Ol111.names ? this.Ol111.names.get(id) : null;
-                var name = (ship.name) || (fetchedName && fetchedName.length > 0 ? fetchedName : null);
-                if (!name && liveDict && liveDict[id]) {
-                    var sObj = liveDict[id];
-                    name = sObj.lOOlI && sObj.lOOlI.status ? sObj.lOOlI.status.name : null;
+                var name = null;
+                if (id === myId) {
+                    name = (this.Ol111.player_name && this.Ol111.player_name.length > 0) ? this.Ol111.player_name : "YOU";
+                } else {
+                    if (this.Ol111.names) {
+                        var fetched = this.Ol111.names.get(id);
+                        if (fetched && fetched.length > 0) name = fetched;
+                    }
+                    if (!name && liveDict && liveDict[id]) {
+                        var sObj = liveDict[id];
+                        name = sObj.lOOlI && sObj.lOOlI.status ? sObj.lOOlI.status.name : null;
+                    }
+                    if (!name && ship.name) name = ship.name;
+                    if (!name || name.length === 0) name = "Ship #" + id;
+                    if (ship.isLeader) name = "👑 " + name;
                 }
-                if (id === myId) name = this.Ol111.player_name || "YOU";
-                if (!name || name.length === 0) name = "Ship #" + id;
-                if (ship.isLeader && id !== myId) name = "👑 " + name;
-                var data = this.Ol111.names ? this.Ol111.names.getData(id) : null;
-                var hue = ship.hue !== undefined ? ship.hue : (data && data.hue !== undefined ? data.hue : (id === myId ? 180 : 200));
-                
-                ctx.font = "bold 12px 'Play', 'Orbitron', Arial, sans-serif";
-                ctx.textAlign = "center";
-                ctx.textBaseline = "bottom";
-                ctx.strokeStyle = "#000000";
-                ctx.lineWidth = 3.5;
-                ctx.strokeText(name, cx, cy - 6);
-                ctx.fillStyle = id === myId ? "#00f0ff" : (ship.isLeader ? "#ffd700" : "hsla(" + hue + ", 100%, 85%, 1)");
                 ctx.fillText(name, cx, cy - 6);
             }
         }
         this.texture.needsUpdate = !0;
     }, t;
-}(), this.OI1lI = function (t) { function e(t, i) { this.Ol111 = t, this.seed = i, e.IOlII.constructor.call(this), this.l10Il = !1 } return extend(e, t), e.prototype.OOO0l = function (t, e, i, s, l) { this.px = t, this.OOlOl = e, this.OIl00 = i, this.I01O0 = s, this.level = l }, e.prototype.needsUpdate = function () { return this.l10Il }, e.prototype.OIl0l = function () { var t, e, i, s; if (null != this.object) { for (Math.min(this.OIl00, this.I01O0) / 20, s = Math.min(this.OIl00, this.I01O0), this.object.position.x = this.px + this.OIl00 - s / 2, this.object.position.y = this.OOlOl + this.I01O0 - s / 2 - .15 * s, this.object.position.z = -100, this.object.scale.x = s, this.object.scale.y = -s, this.object.scale.z = s, i = this.parent, t = 0, e = 0; ;) { if (null == i) break; t -= i.lIOOO, e -= i.l0IO1, i = i.parent } return this.object.position.x += t, this.object.position.y += e } }, e.prototype.II11O = function (t, e) { if (null != this.O0011 && this.O0011.II11O(t, e), null != this.background) return this.background.II11O(t, e) }, e.prototype.IOI0l = function (t, e) { if (null != this.O0011) return this.O0011.OIl0l(t, e) }, e.prototype.O00Il = function (t, e) { if (null != this.background) return this.background.OIl0l(t, e), this.systemname.OIl0l(t, e), this.infobar.OIl0l(t, e), this.line.OIl0l(t, e), this.O0011.updateHue(t, e) }, e.prototype.setHue = function (t) { if (null != this.background) return this.background.setHue(t), this.systemname.setHue(t), this.infobar.setHue(t), this.line.setHue(t), this.O0011.setHue(t) }, e.prototype.I0I0l = function () { return null == this.object && (this.object = new THREE.Group, this.background = new llI10(this.Ol111), this.object.add(this.background.Il11l), this.systemname = new SystemName(this.Ol111), this.object.add(this.systemname.Ol110), this.infobar = new InfoBar(this.Ol111), this.object.add(this.infobar.Ol110), this.line = new RadarLine(this.Ol111), this.object.add(this.line.Ol110), this.O0011 = new lI1IO(this.Ol111), this.object.add(this.O0011.ll1I1), this.O0011.ll1I1.scale.set(.5, .5, .5), this.radarnames = new RadarNames(this.Ol111), this.object.add(this.radarnames.mesh), this.parent.object.add(this.object)), this.object.visible = this.visible }, e.prototype.I1I0l = function (t) { return this.I0I0l(), this.OIl0l() }, e.prototype.I0I00 = function () { if (null != this.object && this.object.visible) return null != this.line && this.line.lOO1I(), null != this.O0011 && this.O0011.lOO1I(), null != this.infobar && this.infobar.lOO1I(), null != this.radarnames && null != this.O0011 && this.radarnames.draw(this.O0011), null != this.systemname ? this.systemname.I0I00() : void 0 }, e.prototype.hide = function () { if (null != this.object) return this.object.visible = !1 }, e.prototype.l0lII = function () { if (null != this.object) return this.object.visible = !0 }, e }(l0OO1), extend = function (t, e) { function i() { this.constructor = t } for (var s in e) hasProp.call(e, s) && (t[s] = e[s]); return i.prototype = e.prototype, t.prototype = new i, t.IOlII = e.prototype, t }, hasProp = {}.hasOwnProperty, this.I0IOO = function (t) { function e(t) { this.Ol111 = t, this.l10Il = !1, this.angle = 0, this.I01OI = .5 } return extend(e, t), e.prototype.OOO0l = function (t, e, i, s, l) { this.px = t, this.OOlOl = e, this.OIl00 = i, this.I01O0 = s, this.level = l }, e.prototype.needsUpdate = function () { return this.l10Il }, e.prototype.set = function (t, e) { if (this.angle = t, this.I01OI = e, !this.Ol111.is_mobile_app) return this.I01OI = Math.min(2, Math.max(this.I01OI, .5)), this.material.opacity = 1 }, e.prototype.OIl0l = function () { var t, e, i, s; if (null != this.object) { for (this.object.position.x = this.px + Math.cos(this.angle) * this.I01OI * this.parent.I01O0 / 8, this.object.position.y = this.OOlOl + Math.sin(this.angle) * this.I01OI * this.parent.I01O0 / 8, this.object.position.z = -100, this.object.rotation.z = this.angle, s = Math.min(this.OIl00, this.I01O0), this.object.scale.x = .5 * s, this.object.scale.y = -s, this.object.scale.z = s, i = this.parent, t = 0, e = 0; ;) { if (null == i) break; t -= i.lIOOO, e -= i.l0IO1, i = i.parent } return this.object.position.x += t, this.object.position.y += e } }, e.prototype.I0I0l = function () { var t, e, i; if (null == this.object) return this.lO001 = new THREE.PlaneGeometry(1, 1), t = document.createElement("canvas"), t.width = 64, t.height = 64, e = t.getContext("2d"), e.translate(t.width / 2, t.height / 2), e.scale(t.width / 2, t.height / 2), e.fillStyle = "hsla(200,50%,70%,1)", e.moveTo(1, 0), e.lineTo(0, -.7), e.lineTo(0, -.2), e.lineTo(-1, -.3), e.lineTo(-1, .3), e.lineTo(0, .2), e.lineTo(0, .7), e.lineTo(1, 0), e.fill(), i = new THREE.Texture(t), i.needsUpdate = !0, this.material = new THREE.MeshBasicMaterial({ transparent: !0, map: i, opacity: 0 }), this.object = new THREE.Mesh(this.lO001, this.material), this.parent.object.add(this.object) }, e.prototype.I1I0l = function (t) { return this.I0I0l(), this.OIl0l() }, e.prototype.I0I00 = function () { if (null != this.material && (this.material.opacity *= .98), null != this.object) return this.object.visible = this.material.opacity > .01 }, e }(l0OO1), extend = function (t, e) { function i() { this.constructor = t } for (var s in e) hasProp.call(e, s) && (t[s] = e[s]); return i.prototype = e.prototype, t.prototype = new i, t.IOlII = e.prototype, t }, hasProp = {}.hasOwnProperty, this.Joystick = function (t) { function e(t) { this.Ol111 = t, e.IOlII.constructor.call(this), this.l10Il = !1, this.angle = 0, this.I01OI = .5, this.pressed = !1, this.posx = 0, this.posy = 0, this.jx = 0, this.jy = 0 } return extend(e, t), e.prototype.OOO0l = function (t, e, i, s, l) { this.px = t, this.OOlOl = e, this.OIl00 = i, this.I01O0 = s, this.level = l }, e.prototype.needsUpdate = function () { return this.l10Il }, e.prototype.set = function (t, e, i, s) { if (this.posx = t, this.posy = e, this.jx = i, this.jy = s, this.pressed = !0, this.I0I0l(), null != this.material) return this.material.opacity = 1 }, e.prototype.setHue = function (t) { this.hue = t }, e.prototype.OIl0l = function () { var t, e, i, s; if (null != this.object && this.object.visible) { for (this.object.position.x = this.posx * this.parent.I01O0, this.object.position.y = this.posy * this.parent.I01O0, this.object.position.z = -99, this.dot.position.x = this.jx * this.parent.I01O0, this.dot.position.y = this.jy * this.parent.I01O0, this.dot.position.z = -98, s = Math.min(this.OIl00, this.I01O0) * this.Ol111.IO1OO.control.joystickRatio(), this.object.scale.x = s, this.object.scale.y = -s, this.object.scale.z = s, this.dot.scale.x = .25 * s, this.dot.scale.y = .25 * -s, this.dot.scale.x = .25 * s, i = this.parent, t = 0, e = 0; ;) { if (null == i) break; t -= i.lIOOO, e -= i.l0IO1, i = i.parent } return this.object.position.x += t, this.object.position.y += e } }, e.prototype.createCanvas = function (t) { var e, i; return e = document.createElement("canvas"), e.width = 512, e.height = 512, i = e.getContext("2d"), i.translate(e.width / 2, e.height / 2), i.scale(e.width / 2, e.height / 2), i.lineWidth = .016, i.strokeStyle = "hsla(" + this.hue + ",50%,80%,1)", i.shadowBlur = 10, i.shadowOpacity = 1, i.shadowColor = "hsl(" + this.hue + ",50%,100%)", i.beginPath(), i.arc(0, 0, .8, 0, 180 * THREE.Math.DEG2RAD * 2, !0), i.stroke(), i.strokeStyle = "hsla(" + this.hue + ",50%,80%,.4)", i.beginPath(), i.arc(0, 0, .75, 0, 180 * THREE.Math.DEG2RAD * 2, !0), i.stroke(), i.strokeStyle = "hsla(" + this.hue + ",50%,80%,.6)", i.beginPath(), i.arc(0, 0, .3, 0, 180 * THREE.Math.DEG2RAD * 2, !0), i.stroke(), t && (i.lineWidth = .05, i.beginPath(), i.arc(0, 0, .85, 0, 180 * THREE.Math.DEG2RAD * 2, !0), i.stroke()), e }, e.prototype.createDotTexture = function () { var t, e, i, s; return t = document.createElement("canvas"), t.width = 128, t.height = 128, e = t.getContext("2d"), e.translate(t.width / 2, t.height / 2), e.scale(t.width / 2, t.height / 2), i = e.createRadialGradient(0, 0, 0, 0, 0, 1), i.addColorStop(0, "hsla(" + this.hue + ",50%,80%,.5)"), i.addColorStop(.7, "hsla(" + this.hue + ",50%,80%,0)"), i.addColorStop(.7, "hsla(" + this.hue + ",50%,80%,1)"), i.addColorStop(.8, "hsla(" + this.hue + ",50%,80%,1)"), i.addColorStop(.8, "hsla(" + this.hue + ",50%,80%,.5)"), i.addColorStop(1, "hsla(" + this.hue + ",50%,80%,0)"), e.fillStyle = i, e.fillRect(-1, -1, 2, 2), s = new THREE.Texture(t), s.minFilter = s.magFilter = THREE.LinearFilter, s.needsUpdate = !0, s }, e.prototype.I0I0l = function () { var t; if (null == this.object) return this.lO001 = new THREE.PlaneGeometry(1, 1), this.texture = new THREE.Texture(this.createCanvas(!1)), this.texture.minFilter = this.texture.magFilter = THREE.LinearFilter, this.texture.needsUpdate = !0, this.texture_thrust = new THREE.Texture(this.createCanvas(!0)), this.texture.minFilter = this.texture.magFilter = THREE.LinearFilter, this.texture_thrust.needsUpdate = !0, this.material = new THREE.MeshBasicMaterial({ transparent: !0, map: this.texture, blending: THREE.AdditiveBlending, opacity: 1, depthTest: !1, depthWrite: !1 }), this.object = new THREE.Mesh(this.lO001, this.material), this.dot_material = new THREE.MeshBasicMaterial({ transparent: !0, map: this.createDotTexture(), blending: THREE.AdditiveBlending, opacity: 1, depthTest: !1, depthWrite: !1 }), t = new THREE.PlaneGeometry(1, 1), this.dot = new THREE.Mesh(t, this.dot_material), this.parent.object.add(this.object), this.parent.object.add(this.dot) }, e.prototype.I1I0l = function (t) { return this.pressed && this.I0I0l(), this.OIl0l() }, e.prototype.I0I00 = function () { var t, e, i, s, l, n; if (null == this.parent || null == this.parent.object || null != this.object || this.pressed || null == this.Ol111.IO1OO.control || (i = this.Ol111.display.height, n = this.Ol111.IO1OO.control.joystickRadius(), t = this.Ol111.IO1OO.I0lO1.l11II.angle, t = -t * (180 * THREE.Math.DEG2RAD) / 180, e = n / 2, s = 1 * e * 4, l = i - 1 * e * 4, this.set(s / i, l / i, s / i, l / i)), null != this.object && (this.object.visible = this.visible, this.dot.visible = this.visible), null != this.material) return this.Ol111.settings.check("joystick_thrust") && this.Ol111.IO1OO.I0lO1.l11II.up ? this.material.map = this.texture_thrust : this.material.map = this.texture }, e }(l0OO1), this.InfoBar = function () {
+}(), this.OI1lI = function (t) { function e(t, i) { this.Ol111 = t, this.seed = i, e.IOlII.constructor.call(this), this.l10Il = !1 } return extend(e, t), e.prototype.OOO0l = function (t, e, i, s, l) { this.px = t, this.OOlOl = e, this.OIl00 = i, this.I01O0 = s, this.level = l }, e.prototype.needsUpdate = function () { return this.l10Il }, e.prototype.OIl0l = function () { var t, e, i, s; if (null != this.object) { for (Math.min(this.OIl00, this.I01O0) / 20, s = Math.min(this.OIl00, this.I01O0), this.object.position.x = this.px + this.OIl00 - s / 2, this.object.position.y = this.OOlOl + this.I01O0 - s / 2 - .15 * s, this.object.position.z = -100, this.object.scale.x = s, this.object.scale.y = -s, this.object.scale.z = s, i = this.parent, t = 0, e = 0; ;) { if (null == i) break; t -= i.lIOOO, e -= i.l0IO1, i = i.parent } return this.object.position.x += t, this.object.position.y += e } }, e.prototype.II11O = function (t, e) { if (null != this.O0011 && this.O0011.II11O(t, e), null != this.radarnames && null != this.O0011 && this.radarnames.draw(this.O0011), null != this.background) return this.background.II11O(t, e) }, e.prototype.IOI0l = function (t, e) { if (null != this.O0011) return this.O0011.OIl0l(t, e) }, e.prototype.O00Il = function (t, e) { if (null != this.background) return this.background.OIl0l(t, e), this.systemname.OIl0l(t, e), this.infobar.OIl0l(t, e), this.line.OIl0l(t, e), this.O0011.updateHue(t, e) }, e.prototype.setHue = function (t) { if (null != this.background) return this.background.setHue(t), this.systemname.setHue(t), this.infobar.setHue(t), this.line.setHue(t), this.O0011.setHue(t) }, e.prototype.I0I0l = function () { return null == this.object && (this.object = new THREE.Group, this.background = new llI10(this.Ol111), this.object.add(this.background.Il11l), this.systemname = new SystemName(this.Ol111), this.object.add(this.systemname.Ol110), this.infobar = new InfoBar(this.Ol111), this.object.add(this.infobar.Ol110), this.line = new RadarLine(this.Ol111), this.object.add(this.line.Ol110), this.O0011 = new lI1IO(this.Ol111), this.object.add(this.O0011.ll1I1), this.O0011.ll1I1.scale.set(.5, .5, .5), this.radarnames = new RadarNames(this.Ol111), this.object.add(this.radarnames.mesh), this.parent.object.add(this.object)), this.object.visible = this.visible }, e.prototype.I1I0l = function (t) { return this.I0I0l(), this.OIl0l() }, e.prototype.I0I00 = function () { if (null != this.object && this.object.visible) return null != this.line && this.line.lOO1I(), null != this.O0011 && this.O0011.lOO1I(), null != this.infobar && this.infobar.lOO1I(), null != this.systemname ? this.systemname.I0I00() : void 0 }, e.prototype.hide = function () { if (null != this.object) return this.object.visible = !1 }, e.prototype.l0lII = function () { if (null != this.object) return this.object.visible = !0 }, e }(l0OO1), extend = function (t, e) { function i() { this.constructor = t } for (var s in e) hasProp.call(e, s) && (t[s] = e[s]); return i.prototype = e.prototype, t.prototype = new i, t.IOlII = e.prototype, t }, hasProp = {}.hasOwnProperty, this.I0IOO = function (t) { function e(t) { this.Ol111 = t, this.l10Il = !1, this.angle = 0, this.I01OI = .5 } return extend(e, t), e.prototype.OOO0l = function (t, e, i, s, l) { this.px = t, this.OOlOl = e, this.OIl00 = i, this.I01O0 = s, this.level = l }, e.prototype.needsUpdate = function () { return this.l10Il }, e.prototype.set = function (t, e) { if (this.angle = t, this.I01OI = e, !this.Ol111.is_mobile_app) return this.I01OI = Math.min(2, Math.max(this.I01OI, .5)), this.material.opacity = 1 }, e.prototype.OIl0l = function () { var t, e, i, s; if (null != this.object) { for (this.object.position.x = this.px + Math.cos(this.angle) * this.I01OI * this.parent.I01O0 / 8, this.object.position.y = this.OOlOl + Math.sin(this.angle) * this.I01OI * this.parent.I01O0 / 8, this.object.position.z = -100, this.object.rotation.z = this.angle, s = Math.min(this.OIl00, this.I01O0), this.object.scale.x = .5 * s, this.object.scale.y = -s, this.object.scale.z = s, i = this.parent, t = 0, e = 0; ;) { if (null == i) break; t -= i.lIOOO, e -= i.l0IO1, i = i.parent } return this.object.position.x += t, this.object.position.y += e } }, e.prototype.I0I0l = function () { var t, e, i; if (null == this.object) return this.lO001 = new THREE.PlaneGeometry(1, 1), t = document.createElement("canvas"), t.width = 64, t.height = 64, e = t.getContext("2d"), e.translate(t.width / 2, t.height / 2), e.scale(t.width / 2, t.height / 2), e.fillStyle = "hsla(200,50%,70%,1)", e.moveTo(1, 0), e.lineTo(0, -.7), e.lineTo(0, -.2), e.lineTo(-1, -.3), e.lineTo(-1, .3), e.lineTo(0, .2), e.lineTo(0, .7), e.lineTo(1, 0), e.fill(), i = new THREE.Texture(t), i.needsUpdate = !0, this.material = new THREE.MeshBasicMaterial({ transparent: !0, map: i, opacity: 0 }), this.object = new THREE.Mesh(this.lO001, this.material), this.parent.object.add(this.object) }, e.prototype.I1I0l = function (t) { return this.I0I0l(), this.OIl0l() }, e.prototype.I0I00 = function () { if (null != this.material && (this.material.opacity *= .98), null != this.object) return this.object.visible = this.material.opacity > .01 }, e }(l0OO1), extend = function (t, e) { function i() { this.constructor = t } for (var s in e) hasProp.call(e, s) && (t[s] = e[s]); return i.prototype = e.prototype, t.prototype = new i, t.IOlII = e.prototype, t }, hasProp = {}.hasOwnProperty, this.Joystick = function (t) { function e(t) { this.Ol111 = t, e.IOlII.constructor.call(this), this.l10Il = !1, this.angle = 0, this.I01OI = .5, this.pressed = !1, this.posx = 0, this.posy = 0, this.jx = 0, this.jy = 0 } return extend(e, t), e.prototype.OOO0l = function (t, e, i, s, l) { this.px = t, this.OOlOl = e, this.OIl00 = i, this.I01O0 = s, this.level = l }, e.prototype.needsUpdate = function () { return this.l10Il }, e.prototype.set = function (t, e, i, s) { if (this.posx = t, this.posy = e, this.jx = i, this.jy = s, this.pressed = !0, this.I0I0l(), null != this.material) return this.material.opacity = 1 }, e.prototype.setHue = function (t) { this.hue = t }, e.prototype.OIl0l = function () { var t, e, i, s; if (null != this.object && this.object.visible) { for (this.object.position.x = this.posx * this.parent.I01O0, this.object.position.y = this.posy * this.parent.I01O0, this.object.position.z = -99, this.dot.position.x = this.jx * this.parent.I01O0, this.dot.position.y = this.jy * this.parent.I01O0, this.dot.position.z = -98, s = Math.min(this.OIl00, this.I01O0) * this.Ol111.IO1OO.control.joystickRatio(), this.object.scale.x = s, this.object.scale.y = -s, this.object.scale.z = s, this.dot.scale.x = .25 * s, this.dot.scale.y = .25 * -s, this.dot.scale.x = .25 * s, i = this.parent, t = 0, e = 0; ;) { if (null == i) break; t -= i.lIOOO, e -= i.l0IO1, i = i.parent } return this.object.position.x += t, this.object.position.y += e } }, e.prototype.createCanvas = function (t) { var e, i; return e = document.createElement("canvas"), e.width = 512, e.height = 512, i = e.getContext("2d"), i.translate(e.width / 2, e.height / 2), i.scale(e.width / 2, e.height / 2), i.lineWidth = .016, i.strokeStyle = "hsla(" + this.hue + ",50%,80%,1)", i.shadowBlur = 10, i.shadowOpacity = 1, i.shadowColor = "hsl(" + this.hue + ",50%,100%)", i.beginPath(), i.arc(0, 0, .8, 0, 180 * THREE.Math.DEG2RAD * 2, !0), i.stroke(), i.strokeStyle = "hsla(" + this.hue + ",50%,80%,.4)", i.beginPath(), i.arc(0, 0, .75, 0, 180 * THREE.Math.DEG2RAD * 2, !0), i.stroke(), i.strokeStyle = "hsla(" + this.hue + ",50%,80%,.6)", i.beginPath(), i.arc(0, 0, .3, 0, 180 * THREE.Math.DEG2RAD * 2, !0), i.stroke(), t && (i.lineWidth = .05, i.beginPath(), i.arc(0, 0, .85, 0, 180 * THREE.Math.DEG2RAD * 2, !0), i.stroke()), e }, e.prototype.createDotTexture = function () { var t, e, i, s; return t = document.createElement("canvas"), t.width = 128, t.height = 128, e = t.getContext("2d"), e.translate(t.width / 2, t.height / 2), e.scale(t.width / 2, t.height / 2), i = e.createRadialGradient(0, 0, 0, 0, 0, 1), i.addColorStop(0, "hsla(" + this.hue + ",50%,80%,.5)"), i.addColorStop(.7, "hsla(" + this.hue + ",50%,80%,0)"), i.addColorStop(.7, "hsla(" + this.hue + ",50%,80%,1)"), i.addColorStop(.8, "hsla(" + this.hue + ",50%,80%,1)"), i.addColorStop(.8, "hsla(" + this.hue + ",50%,80%,.5)"), i.addColorStop(1, "hsla(" + this.hue + ",50%,80%,0)"), e.fillStyle = i, e.fillRect(-1, -1, 2, 2), s = new THREE.Texture(t), s.minFilter = s.magFilter = THREE.LinearFilter, s.needsUpdate = !0, s }, e.prototype.I0I0l = function () { var t; if (null == this.object) return this.lO001 = new THREE.PlaneGeometry(1, 1), this.texture = new THREE.Texture(this.createCanvas(!1)), this.texture.minFilter = this.texture.magFilter = THREE.LinearFilter, this.texture.needsUpdate = !0, this.texture_thrust = new THREE.Texture(this.createCanvas(!0)), this.texture.minFilter = this.texture.magFilter = THREE.LinearFilter, this.texture_thrust.needsUpdate = !0, this.material = new THREE.MeshBasicMaterial({ transparent: !0, map: this.texture, blending: THREE.AdditiveBlending, opacity: 1, depthTest: !1, depthWrite: !1 }), this.object = new THREE.Mesh(this.lO001, this.material), this.dot_material = new THREE.MeshBasicMaterial({ transparent: !0, map: this.createDotTexture(), blending: THREE.AdditiveBlending, opacity: 1, depthTest: !1, depthWrite: !1 }), t = new THREE.PlaneGeometry(1, 1), this.dot = new THREE.Mesh(t, this.dot_material), this.parent.object.add(this.object), this.parent.object.add(this.dot) }, e.prototype.I1I0l = function (t) { return this.pressed && this.I0I0l(), this.OIl0l() }, e.prototype.I0I00 = function () { var t, e, i, s, l, n; if (null == this.parent || null == this.parent.object || null != this.object || this.pressed || null == this.Ol111.IO1OO.control || (i = this.Ol111.display.height, n = this.Ol111.IO1OO.control.joystickRadius(), t = this.Ol111.IO1OO.I0lO1.l11II.angle, t = -t * (180 * THREE.Math.DEG2RAD) / 180, e = n / 2, s = 1 * e * 4, l = i - 1 * e * 4, this.set(s / i, l / i, s / i, l / i)), null != this.object && (this.object.visible = this.visible, this.dot.visible = this.visible), null != this.material) return this.Ol111.settings.check("joystick_thrust") && this.Ol111.IO1OO.I0lO1.l11II.up ? this.material.map = this.texture_thrust : this.material.map = this.texture }, e }(l0OO1), this.InfoBar = function () {
                 function t(t) {
                     this.Ol111 = t, this.canvas = document.createElement("canvas"), this.canvas.width = 512, this.canvas.height = 64,
                     this.texture = new THREE.Texture(this.canvas), this.texture.minFilter = THREE.LinearFilter, this.lO001 = new THREE.PlaneGeometry(1, 1), this.material = new THREE.MeshBasicMaterial({ map: this.texture, transparent: !0, depthTest: !1, depthWrite: !1, blending: THREE.AdditiveBlending }), this.data = { name: "" }, this.Ol110 = new THREE.Mesh(this.lO001, this.material), this.Ol110.scale.set(1, .125, 1), this.Ol110.position.y = -.5875, this.fps = 60, this.players = 0, this.OO00I = 0, this.ping = 0, this.refresh_time = 0
@@ -3233,7 +3255,7 @@ try {
     // 1. CONFIGURATION GLOBALE DU CLIENT (MOD SETTINGS)
     // =========================================================================
     window.modSettings = {
-        __version: 'unified-v15-20260815',
+        __version: 'unified-v16-20260815',
         fovEnabled: false, // FOV désactivé par défaut pour éviter les dézooms involontaires
         fastRespawnEnabled: false,
         radarNamesEnabled: true,
@@ -4168,7 +4190,7 @@ try {
 
                 var chk = document.createElement('input');
                 chk.type = 'checkbox';
-                chk.checked = !!window.modSettings[item.id];
+                chk.checked = !window.modSettings || window.modSettings[item.id] !== false;
                 chk.id = 'chk-' + item.id;
                 chk.addEventListener('change', function() {
                     window.modSettings[item.id] = chk.checked;
